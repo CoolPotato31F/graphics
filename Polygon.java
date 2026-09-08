@@ -5,71 +5,43 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 
 /**
- * The Rectangle class implements the GraphicsObject interface and represents a drawable rectangle.
+ * The Polygon class implements the GraphicsObject interface and represents
+ * a drawable polygon defined by an arbitrary set of points.
  */
-public class Rectangle implements GraphicsObject {
+public class Polygon implements GraphicsObject {
 
-    private Point point1; // Top-left corner of the rectangle
-    private Point point2; // Bottom-right corner of the rectangle
-    private Point center; // Center of the rectangle
-    private int width = 1; // Outline width
-    private int w; // Width of the rectangle
-    private int h; // Height of the rectangle
-    private GraphWin canvas; // Reference to the canvas where the rectangle is drawn
-    private Color fillColor; // Color used to fill the rectangle
-    private Color outlineColor = Color.BLACK; // Default outline color is black
+    protected Point[] points;         // Vertices of the polygon
+    protected Color fillColor;        // Fill color (null = unfilled)
+    protected Color outlineColor = Color.BLACK; // Outline color
+    protected int width = 1;          // Outline width
+    protected GraphWin canvas;        // Reference to the canvas this is drawn on
 
     /**
-     * Constructs a Rectangle object with two diagonal points.
-     * 
-     * @param p1 One corner of the rectangle.
-     * @param p2 The opposite corner of the rectangle.
+     * Constructs a Polygon from an array of points.
+     *
+     * @param p The vertices of the polygon, in order.
      */
-    public Rectangle(Point p1, Point p2) {
-        Point np1 = new Point(0, 0);
-        Point np2 = new Point(0, 0);
-        
-        if (p1.getX() > p2.getX()) {
-            np1.move(p2.getX(), 0);
-            np2.move(p1.getX(), 0);
-        } else {
-            np1.move(p1.getX(), 0);
-            np2.move(p2.getX(), 0);
-        }
-
-        if (p1.getY() > p2.getY()) {
-            np1.move(0, p2.getY());
-            np2.move(0, p1.getY());
-        } else {
-            np1.move(0, p1.getY());
-            np2.move(0, p2.getY());
-        }
-
-        this.point1 = np1;
-        this.point2 = np2;
-        this.center = new Point(np2.getX() - np1.getX(), np2.getY() - np1.getY());
-        w = (int) (np2.getX() - np1.getX());
-        h = (int) (np2.getY() - np1.getY());
+    public Polygon(Point[] p) {
+        this.points = p;
     }
 
     /**
-     * Draws the rectangle on the given canvas.
-     * 
-     * @param canvas The canvas on which the rectangle will be drawn.
-     * @throws Error if the rectangle is already drawn on a canvas.
+     * Draws the polygon on the given canvas.
+     *
+     * @param canvas The canvas on which the polygon will be drawn.
+     * @throws IllegalStateException if the polygon is already drawn.
      */
-    
     @Override
     public void draw(GraphWin canvas) {
         if (this.canvas != null) {
-            throw new Error("Object is already drawn");
+            throw new IllegalStateException("Object is already drawn");
         }
         this.canvas = canvas;
         canvas.addItem(this);
     }
 
     /**
-     * Removes the rectangle from the canvas.
+     * Removes the polygon from the canvas.
      */
     @Override
     public void undraw() {
@@ -77,65 +49,30 @@ public class Rectangle implements GraphicsObject {
             canvas.deleteItem(this);
             this.canvas = null;
         }
+        Animator.cancel(this); // stop any in-flight animation now that this is off-canvas
     }
 
     /**
-     * Sets the fill color of the rectangle.
-     * 
-     * @param color The color to fill the rectangle with.
+     * Sets the fill color of the polygon.
+     *
+     * @param color The color to fill the polygon with.
      */
     public void setFill(Color color) {
         this.fillColor = color;
     }
 
     /**
-     * Sets the outline color of the rectangle.
-     * 
-     * @param color The outline color of the rectangle.
+     * Sets the outline color of the polygon.
+     *
+     * @param color The outline color of the polygon.
      */
     public void setOutline(Color color) {
         this.outlineColor = color;
     }
 
     /**
-     * Gets the first corner of the rectangle.
-     * 
-     * @return The first corner (top-left) of the rectangle.
-     */
-    public Point getP1() {
-        return point1;
-    }
-
-    /**
-     * Gets the second corner of the rectangle.
-     * 
-     * @return The second corner (bottom-right) of the rectangle.
-     */
-    public Point getP2() {
-        return point2;
-    }
-
-    /**
-     * Gets the center point of the rectangle.
-     * 
-     * @return The center point of the rectangle.
-     */
-    public Point getCenter() {
-        return center;
-    }
-
-    /**
-     * Gets the size of the rectangle as a Point object where x is width and y is height.
-     * 
-     * @return A Point representing the width and height of the rectangle.
-     */
-    public Point getSize() {
-        return new Point(w, h);
-    }
-
-    /**
-     * Sets the width of the rectangle's outline.
-     * 
+     * Sets the outline width of the polygon.
+     *
      * @param width The width of the outline.
      */
     public void setWidth(int width) {
@@ -143,78 +80,80 @@ public class Rectangle implements GraphicsObject {
     }
 
     /**
-     * Gets the width of the rectangle's outline.
-     * 
-     * @return The width of the outline.
+     * Gets the outline width of the polygon.
+     *
+     * @return The outline width.
      */
     public int getWidth() {
         return this.width;
     }
 
     /**
-     * Moves the rectangle by a specified amount in the x and y directions.
-     * 
-     * @param dx The amount to move the rectangle along the x-axis.
-     * @param dy The amount to move the rectangle along the y-axis.
+     * Gets the vertices of the polygon.
+     *
+     * @return The array of points defining the polygon.
+     */
+    public Point[] getPoints() {
+        return points;
+    }
+
+    /**
+     * Returns the x-coordinates of all vertices, in order, as an int array
+     * (suitable for use with Graphics2D fillPolygon/drawPolygon).
+     *
+     * @return The x-coordinates of the polygon's vertices.
+     */
+    public int[] getXCords() {
+        int[] xCoords = new int[points.length];
+        for (int i = 0; i < points.length; i++) {
+            xCoords[i] = (int) points[i].getX();
+        }
+        return xCoords;
+    }
+
+    /**
+     * Returns the y-coordinates of all vertices, in order, as an int array
+     * (suitable for use with Graphics2D fillPolygon/drawPolygon).
+     *
+     * @return The y-coordinates of the polygon's vertices.
+     */
+    public int[] getYCords() {
+        int[] yCoords = new int[points.length];
+        for (int i = 0; i < points.length; i++) {
+            yCoords[i] = (int) points[i].getY();
+        }
+        return yCoords;
+    }
+
+    /**
+     * Moves the polygon by the specified amount in the x and y directions.
+     *
+     * @param dx The amount to move along the x-axis.
+     * @param dy The amount to move along the y-axis.
      */
     public void move(double dx, double dy) {
-        point1.move(dx, dy);
-        point2.move(dx, dy);
+        for (Point p : points) {
+            p.move(dx, dy);
+        }
         if (this.canvas != null && this.canvas.autoflush) {
             this.canvas.repaint();
         }
     }
-    
+
     /**
-     * Moves the rectangle smoothly over a given duration.
+     * Moves the polygon smoothly over a given duration.
      *
      * @param dx   The total change in x-coordinate.
      * @param dy   The total change in y-coordinate.
      * @param time The duration (in seconds) for the movement.
      */
     public void move(double dx, double dy, double time) {
-        new Thread(() -> {
-            long startTime = System.nanoTime();
-            long endTime = startTime + (long) (time * 1_000_000_000); // Convert seconds to nanoseconds
-            double startX = this.point1.getX();
-            double startY = this.point1.getY();
-            double startX2 = this.point2.getX();
-            double startY2 = this.point2.getY();
-
-            while (System.nanoTime() < endTime) {
-                double elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0; // Convert to seconds
-                double progress = elapsedTime / time;
-                if (progress > 1.0) progress = 1.0; // Clamp to ensure no overshooting
-
-                // Interpolate position
-                this.point1.moveTo(startX + dx * progress, startY + dy * progress);
-                this.point2.moveTo(startX2 + dx * progress, startY2 + dy * progress);
-
-                if (canvas != null) {
-                    canvas.update();
-                }
-
-                try {
-                    Thread.sleep(10); // Sleep briefly to allow smooth rendering
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-
-            // Ensure final position is set exactly
-            this.point1.moveTo(startX + dx, startY + dy);
-            this.point2.moveTo(startX2 + dx, startY2 + dy);
-
-            if (canvas != null) {
-                canvas.update();
-            }
-        }).start();
+        move(dx, dy, time, EasingStyle.LINEAR, EasingDirection.IN);
     }
 
     /**
-     * Smoothly moves the point from its current position by (dx, dy) over a specified time
-     * using the given easing style and direction.
+     * Smoothly moves the polygon from its current position by (dx, dy) over a
+     * specified time using the given easing style and direction.
      *
      * @param dx              The total change in x-coordinate.
      * @param dy              The total change in y-coordinate.
@@ -223,120 +162,60 @@ public class Rectangle implements GraphicsObject {
      * @param easingDirection The direction of the easing (In, Out, or InOut).
      */
     public void move(double dx, double dy, double time, EasingStyle easingStyle, EasingDirection easingDirection) {
-        new Thread(() -> {
-            long startTime = System.nanoTime();
-            long endTime = startTime + (long) (time * 1_000_000_000);
-            double startX = this.point1.getX();
-            double startY = this.point1.getY();
-            double startX2 = this.point2.getX();
-            double startY2 = this.point2.getY();
-
-            while (System.nanoTime() < endTime) {
-                double elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-                double progress = elapsedTime / time;
-                if (progress > 1.0) progress = 1.0;
-                double easedProgress = applyEasing(progress, easingStyle, easingDirection);
-
-                this.point1.moveTo(startX + dx * easedProgress, startY + dy * easedProgress);
-                this.point2.moveTo(startX2 + dx * easedProgress, startY2 + dy * easedProgress);
-
-                if (canvas != null) {
-                    canvas.update();
-                }
-
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-
-            this.point1.moveTo(startX + dx, startY + dy);
-            this.point2.moveTo(startX2 + dx, startY2 + dy);
-
-            if (canvas != null) {
-                canvas.update();
-            }
-        }).start();
-    }
-    
-    private double applyEasing(double t, EasingStyle style, EasingDirection easingDirection) {
-        switch (easingDirection) {
-            case OUT:
-                // Reverse the easing by applying (1 - easing(1 - t))
-                return 1 - applyEasing(1 - t, style, EasingDirection.IN);
-            case INOUT:
-                // First half uses In, second half uses Out
-                return t < 0.5 
-                    ? applyEasing(t * 2, style, EasingDirection.IN) / 2 
-                    : 1 - applyEasing((1 - t) * 2, style, EasingDirection.IN) / 2;
-            case IN:
-            default:
-                // Normal easing behavior
-                switch (style) {
-                    case LINEAR:
-                        return t;
-                    case SINE:
-                        return 1 - Math.cos(t * Math.PI / 2);
-                    case QUAD:
-                        return t * t;
-                    case CUBIC:
-                        return t * t * t;
-                    case QUART:
-                        return t * t * t * t;
-                    case QUINT:
-                        return t * t * t * t * t;
-                    case EXPONENTIAL:
-                        return t == 0 ? 0 : Math.pow(2, 10 * (t - 1));
-                    case CIRCULAR:
-                        return 1 - Math.sqrt(1 - t * t);
-                    case BACK:
-                        double s = 1.70158;  // Default overshoot amount for "back" easing
-                        return t * t * ((s + 1) * t - s);
-                    case ELASTIC:
-                        if (t == 0 || t == 1) return t;
-                        double p = 0.3; // Period of oscillation
-                        return -Math.pow(2, 10 * (t - 1)) * Math.sin((t - 1.1) * (2 * Math.PI) / p);
-                    case BOUNCE:
-                        if (t > (1 - 1 / 2.75)) {
-                            t = 1 - t;
-                            return 1 - (7.5625 * t * t);
-                        } else if (t > (1 - 2 / 2.75)) {
-                            t = 1 - t - (1.5 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.75);
-                        } else if (t > (1 - 2.5 / 2.75)) {
-                            t = 1 - t - (2.25 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.9375);
-                        } else {
-                            t = 1 - t - (2.625 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.984375);
-                        }
-                    default:
-                        return t; // Default to linear if the easing type is unknown
-                }
+        final double[] startX = new double[points.length];
+        final double[] startY = new double[points.length];
+        for (int i = 0; i < points.length; i++) {
+            startX[i] = points[i].getX();
+            startY[i] = points[i].getY();
         }
+        Animator.animate(this, time, easingStyle, easingDirection,
+            progress -> {
+                for (int i = 0; i < points.length; i++) {
+                    points[i].moveTo(startX[i] + dx * progress, startY[i] + dy * progress);
+                }
+            },
+            () -> {
+                for (int i = 0; i < points.length; i++) {
+                    points[i].moveTo(startX[i] + dx, startY[i] + dy);
+                }
+            },
+            () -> this.canvas);
     }
 
+    /**
+     * Draws the polygon on a Graphics2D panel.
+     *
+     * @param graphics The Graphics2D object used for rendering.
+     */
     @Override
     public void drawPanel(Graphics2D graphics) {
+        int[] xCoords = getXCords();
+        int[] yCoords = getYCords();
+
         if (fillColor != null) {
             graphics.setColor(fillColor);
-            graphics.fillRect((int) point1.getX(), (int) point1.getY(), w, h);
+            graphics.fillPolygon(xCoords, yCoords, points.length);
         }
-        graphics.setStroke(new BasicStroke(width));
+
+        // JOIN_ROUND (rather than the default JOIN_MITER) rounds sharp
+        // corners instead of letting the outline spike outward past the
+        // vertex -- with an arbitrary polygon, corner angles can get tight
+        // enough that a miter join would extend well beyond the shape.
+        graphics.setStroke(new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         graphics.setColor(outlineColor);
-        graphics.drawRect((int) point1.getX(), (int) point1.getY(), w, h);
+        graphics.drawPolygon(xCoords, yCoords, points.length);
     }
-    
+
     @Override
     public String toString() {
-        return "Rectangle(" +
-               "point1=" + point1 + ", " +
-               "point2=" + point2 + ", " +
-               "center=" + center + ", " +
-               "width=" + width + ", " +
-               "fillColor=" + (fillColor != null ? fillColor : "None") + ", " +
-               "outlineColor=" + outlineColor + ")";
+        StringBuilder str = new StringBuilder("Polygon(Points=[");
+        for (Point p : points) {
+            str.append(p.toString()).append(", ");
+        }
+        if (points.length > 0) {
+            str.setLength(str.length() - 2);
+        }
+        str.append("])");
+        return str.toString();
     }
 }
