@@ -27,6 +27,29 @@ public class Text implements GraphicsObject {
         this.content = content;
         this.position = position;
     }
+
+    /**
+     * Updates the text content shown, e.g. for live-updating displays
+     * (scores, key presses, timers) without having to undraw/redraw a new
+     * {@code Text} object every frame.
+     *
+     * @param content The new text string.
+     */
+    public void setText(String content) {
+        this.content = content;
+        if (canvas != null && canvas.autoflush) {
+            canvas.repaint();
+        }
+    }
+
+    /**
+     * Gets the current text content.
+     *
+     * @return The text string currently displayed.
+     */
+    public String getText() {
+        return content;
+    }
     
     /**
      * Instantly moves the text by the specified x and y distances.
@@ -49,39 +72,7 @@ public class Text implements GraphicsObject {
      * @param time The duration (in seconds) for the movement.
      */
     public void move(double dx, double dy, double time) {
-        new Thread(() -> {
-            long startTime = System.nanoTime();
-            long endTime = startTime + (long) (time * 1_000_000_000); // Convert seconds to nanoseconds
-            double startX = this.position.getX();
-            double startY = this.position.getY();
-
-            while (System.nanoTime() < endTime) {
-                double elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0; // Convert to seconds
-                double progress = elapsedTime / time;
-                if (progress > 1.0) progress = 1.0; // Clamp to ensure no overshooting
-
-                // Interpolate position
-                this.position.moveTo(startX + dx * progress, startY + dy * progress);
-
-                if (canvas != null) {
-                    canvas.update();
-                }
-
-                try {
-                    Thread.sleep(10); // Sleep briefly to allow smooth rendering
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-
-            // Ensure final position is set exactly
-            this.position.moveTo(startX + dx, startY + dy);
-
-            if (canvas != null) {
-                canvas.update();
-            }
-        }).start();
+        move(dx, dy, time, EasingStyle.LINEAR, EasingDirection.IN);
     }
 
     /**
@@ -95,94 +86,12 @@ public class Text implements GraphicsObject {
      * @param easingDirection The direction of the easing (In, Out, or InOut).
      */
     public void move(double dx, double dy, double time, EasingStyle easingStyle, EasingDirection easingDirection) {
-        new Thread(() -> {
-            long startTime = System.nanoTime();
-            long endTime = startTime + (long) (time * 1_000_000_000);
-            double startX = this.position.getX();
-            double startY = this.position.getY();
-
-            while (System.nanoTime() < endTime) {
-                double elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-                double progress = elapsedTime / time;
-                if (progress > 1.0) progress = 1.0;
-                double easedProgress = applyEasing(progress, easingStyle, easingDirection);
-
-                this.position.moveTo(startX + dx * easedProgress, startY + dy * easedProgress);
-
-                if (canvas != null) {
-                    canvas.update();
-                }
-
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-
-            this.position.moveTo(startX + dx, startY + dy);
-
-            if (canvas != null) {
-                canvas.update();
-            }
-        }).start();
-    }
-    private double applyEasing(double t, EasingStyle style, EasingDirection easingDirection) {
-        switch (easingDirection) {
-            case OUT:
-                // Reverse the easing by applying (1 - easing(1 - t))
-                return 1 - applyEasing(1 - t, style, EasingDirection.IN);
-            case INOUT:
-                // First half uses In, second half uses Out
-                return t < 0.5 
-                    ? applyEasing(t * 2, style, EasingDirection.IN) / 2 
-                    : 1 - applyEasing((1 - t) * 2, style, EasingDirection.IN) / 2;
-            case IN:
-            default:
-                // Normal easing behavior
-                switch (style) {
-                    case LINEAR:
-                        return t;
-                    case SINE:
-                        return 1 - Math.cos(t * Math.PI / 2);
-                    case QUAD:
-                        return t * t;
-                    case CUBIC:
-                        return t * t * t;
-                    case QUART:
-                        return t * t * t * t;
-                    case QUINT:
-                        return t * t * t * t * t;
-                    case EXPONENTIAL:
-                        return t == 0 ? 0 : Math.pow(2, 10 * (t - 1));
-                    case CIRCULAR:
-                        return 1 - Math.sqrt(1 - t * t);
-                    case BACK:
-                        double s = 1.70158;  // Default overshoot amount for "back" easing
-                        return t * t * ((s + 1) * t - s);
-                    case ELASTIC:
-                        if (t == 0 || t == 1) return t;
-                        double p = 0.3; // Period of oscillation
-                        return -Math.pow(2, 10 * (t - 1)) * Math.sin((t - 1.1) * (2 * Math.PI) / p);
-                    case BOUNCE:
-                        if (t > (1 - 1 / 2.75)) {
-                            t = 1 - t;
-                            return 1 - (7.5625 * t * t);
-                        } else if (t > (1 - 2 / 2.75)) {
-                            t = 1 - t - (1.5 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.75);
-                        } else if (t > (1 - 2.5 / 2.75)) {
-                            t = 1 - t - (2.25 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.9375);
-                        } else {
-                            t = 1 - t - (2.625 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.984375);
-                        }
-                    default:
-                        return t; // Default to linear if the easing type is unknown
-                }
-        }
+        final double startX = this.position.getX();
+        final double startY = this.position.getY();
+        Animator.animate(this, time, easingStyle, easingDirection,
+            progress -> this.position.moveTo(startX + dx * progress, startY + dy * progress),
+            () -> this.position.moveTo(startX + dx, startY + dy),
+            () -> this.canvas);
     }
 
     // Setters to change text, rectangle, and outline properties
@@ -241,6 +150,7 @@ public class Text implements GraphicsObject {
             canvas.deleteItem(this);
             this.canvas = null;
         }
+        Animator.cancel(this); // stop any in-flight animation now that this is off-canvas
     }
 
     @Override
@@ -253,6 +163,7 @@ public class Text implements GraphicsObject {
         graphics.setFont(font);
 
         String[] lines = content.split("\\n"); // Split content into lines
+        FontMetrics metrics = graphics.getFontMetrics(font); // font doesn't change per-line; compute once
 
         int totalTextHeight = 0;
         int maxWidth = 0;
@@ -260,7 +171,6 @@ public class Text implements GraphicsObject {
 
         // Calculate total height and max width
         for (int i = 0; i < lines.length; i++) {
-            FontMetrics metrics = graphics.getFontMetrics(font);
             int textWidth = metrics.stringWidth(lines[i]);
             int textHeight = metrics.getHeight();
             totalTextHeight += textHeight;
@@ -286,7 +196,11 @@ public class Text implements GraphicsObject {
 
         // Draw border rectangle
         if (borderWidth > 0) {
-            graphics.setStroke(new BasicStroke(borderWidth));
+            // JOIN_ROUND avoids sharp miter spikes at tight corners; a
+            // plain axis-aligned rectangle's 90-degree corners are never
+            // sharp enough to trigger it, but this keeps every shape's
+            // stroke consistent.
+            graphics.setStroke(new BasicStroke(borderWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             graphics.setColor(borderColor);
             graphics.drawRect(x - 5, y - totalTextHeight, maxWidth + 10, totalTextHeight + 5);
         }
@@ -294,7 +208,6 @@ public class Text implements GraphicsObject {
         int yOffset = 0; // Offset for each line
 
         for (int i = 0; i < lines.length; i++) {
-            FontMetrics metrics = graphics.getFontMetrics(font);
             int textHeight = metrics.getHeight();
 
             int lineX = x;
@@ -317,7 +230,12 @@ public class Text implements GraphicsObject {
                 graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-                graphics.setStroke(new BasicStroke(textOutlineWidth));
+                // JOIN_ROUND (rather than the default JOIN_MITER) is what
+                // fixes the "outline spikes past sharp letterforms" issue --
+                // glyph outlines have plenty of sharp corners (the points of
+                // a V, W, A, etc.), and a miter join extends those corners
+                // outward proportional to how sharp the angle is.
+                graphics.setStroke(new BasicStroke(textOutlineWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                 graphics.setColor(textOutlineColor);
                 graphics.draw(textShape); // Draw the outline
             }
