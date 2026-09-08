@@ -19,7 +19,7 @@ public class Line implements GraphicsObject {
 
     /**
      * Constructs a Line between two specified points.
-     * 
+     *
      * @param p1 the starting point of the line
      * @param p2 the ending point of the line
      */
@@ -30,7 +30,7 @@ public class Line implements GraphicsObject {
 
     /**
      * Sets the outline color of the line.
-     * 
+     *
      * @param color the new outline color
      */
     public void setOutline(Color color) {
@@ -39,7 +39,7 @@ public class Line implements GraphicsObject {
 
     /**
      * Sets the first point of the line.
-     * 
+     *
      * @param point the new first point
      */
     public void setP1(Point point) {
@@ -48,13 +48,31 @@ public class Line implements GraphicsObject {
 
     /**
      * Sets the second point of the line.
-     * 
+     *
      * @param point the new second point
      */
     public void setP2(Point point) {
         this.point2 = point;
     }
-    
+
+    /**
+     * Gets the first (start) point of the line.
+     *
+     * @return the first point
+     */
+    public Point getP1() {
+        return point1;
+    }
+
+    /**
+     * Gets the second (end) point of the line.
+     *
+     * @return the second point
+     */
+    public Point getP2() {
+        return point2;
+    }
+
     /**
      * Moves the line by a given offset.
      *
@@ -74,43 +92,7 @@ public class Line implements GraphicsObject {
      * @param time The duration (in seconds) for the movement.
      */
     public void move(double dx, double dy, double time) {
-        new Thread(() -> {
-            long startTime = System.nanoTime();
-            long endTime = startTime + (long) (time * 1_000_000_000); // Convert seconds to nanoseconds
-            double startX = this.point1.getX();
-            double startY = this.point1.getY();
-            double startX2 = this.point2.getX();
-            double startY2 = this.point2.getY();
-
-            while (System.nanoTime() < endTime) {
-                double elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0; // Convert to seconds
-                double progress = elapsedTime / time;
-                if (progress > 1.0) progress = 1.0; // Clamp to ensure no overshooting
-
-                // Interpolate position
-                this.point1.moveTo(startX + dx * progress, startY + dy * progress);
-                this.point2.moveTo(startX2 + dx * progress, startY2 + dy * progress);
-
-                if (canvas != null) {
-                    canvas.update();
-                }
-
-                try {
-                    Thread.sleep(10); // Sleep briefly to allow smooth rendering
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-
-            // Ensure final position is set exactly
-            this.point1.moveTo(startX + dx, startY + dy);
-            this.point2.moveTo(startX2 + dx, startY2 + dy);
-
-            if (canvas != null) {
-                canvas.update();
-            }
-        }).start();
+        move(dx, dy, time, EasingStyle.LINEAR, EasingDirection.IN);
     }
 
     /**
@@ -124,104 +106,25 @@ public class Line implements GraphicsObject {
      * @param easingDirection The direction of the easing (In, Out, or InOut).
      */
     public void move(double dx, double dy, double time, EasingStyle easingStyle, EasingDirection easingDirection) {
-        new Thread(() -> {
-            long startTime = System.nanoTime();
-            long endTime = startTime + (long) (time * 1_000_000_000);
-            double startX = this.point1.getX();
-            double startY = this.point1.getY();
-            double startX2 = this.point2.getX();
-            double startY2 = this.point2.getY();
-
-            while (System.nanoTime() < endTime) {
-                double elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-                double progress = elapsedTime / time;
-                if (progress > 1.0) progress = 1.0;
-                double easedProgress = applyEasing(progress, easingStyle, easingDirection);
-
-                this.point1.moveTo(startX + dx * easedProgress, startY + dy * easedProgress);
-                this.point2.moveTo(startX2 + dx * easedProgress, startY2 + dy * easedProgress);
-
-                if (canvas != null) {
-                    canvas.update();
-                }
-
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-
-            this.point1.moveTo(startX + dx, startY + dy);
-            this.point2.moveTo(startX2 + dx, startY2 + dy);
-
-            if (canvas != null) {
-                canvas.update();
-            }
-        }).start();
-    }
-    
-    private double applyEasing(double t, EasingStyle style, EasingDirection easingDirection) {
-        switch (easingDirection) {
-            case OUT:
-                // Reverse the easing by applying (1 - easing(1 - t))
-                return 1 - applyEasing(1 - t, style, EasingDirection.IN);
-            case INOUT:
-                // First half uses In, second half uses Out
-                return t < 0.5 
-                    ? applyEasing(t * 2, style, EasingDirection.IN) / 2 
-                    : 1 - applyEasing((1 - t) * 2, style, EasingDirection.IN) / 2;
-            case IN:
-            default:
-                // Normal easing behavior
-                switch (style) {
-                    case LINEAR:
-                        return t;
-                    case SINE:
-                        return 1 - Math.cos(t * Math.PI / 2);
-                    case QUAD:
-                        return t * t;
-                    case CUBIC:
-                        return t * t * t;
-                    case QUART:
-                        return t * t * t * t;
-                    case QUINT:
-                        return t * t * t * t * t;
-                    case EXPONENTIAL:
-                        return t == 0 ? 0 : Math.pow(2, 10 * (t - 1));
-                    case CIRCULAR:
-                        return 1 - Math.sqrt(1 - t * t);
-                    case BACK:
-                        double s = 1.70158;  // Default overshoot amount for "back" easing
-                        return t * t * ((s + 1) * t - s);
-                    case ELASTIC:
-                        if (t == 0 || t == 1) return t;
-                        double p = 0.3; // Period of oscillation
-                        return -Math.pow(2, 10 * (t - 1)) * Math.sin((t - 1.1) * (2 * Math.PI) / p);
-                    case BOUNCE:
-                        if (t > (1 - 1 / 2.75)) {
-                            t = 1 - t;
-                            return 1 - (7.5625 * t * t);
-                        } else if (t > (1 - 2 / 2.75)) {
-                            t = 1 - t - (1.5 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.75);
-                        } else if (t > (1 - 2.5 / 2.75)) {
-                            t = 1 - t - (2.25 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.9375);
-                        } else {
-                            t = 1 - t - (2.625 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.984375);
-                        }
-                    default:
-                        return t; // Default to linear if the easing type is unknown
-                }
-        }
+        final double startX = this.point1.getX();
+        final double startY = this.point1.getY();
+        final double startX2 = this.point2.getX();
+        final double startY2 = this.point2.getY();
+        Animator.animate(this, time, easingStyle, easingDirection,
+            progress -> {
+                this.point1.moveTo(startX + dx * progress, startY + dy * progress);
+                this.point2.moveTo(startX2 + dx * progress, startY2 + dy * progress);
+            },
+            () -> {
+                this.point1.moveTo(startX + dx, startY + dy);
+                this.point2.moveTo(startX2 + dx, startY2 + dy);
+            },
+            () -> this.canvas);
     }
 
     /**
      * Gets the width (thickness) of the line.
-     * 
+     *
      * @return the width of the line
      */
     public int getWidth() {
@@ -230,7 +133,7 @@ public class Line implements GraphicsObject {
 
     /**
      * Sets the width (thickness) of the line.
-     * 
+     *
      * @param width the new width of the line
      */
     public void setWidth(int width) {
@@ -239,7 +142,7 @@ public class Line implements GraphicsObject {
 
     /**
      * Sets the type of the line (solid, dotted, or dashed).
-     * 
+     *
      * @param type the type of the line ("solid", "dotted", or "dashed")
      */
     public void setType(String type) {
@@ -249,12 +152,12 @@ public class Line implements GraphicsObject {
             throw new IllegalArgumentException("Invalid line type: " + type + "\nValid types: \"solid\", \"dashed\", \"dotted\"");
         }
     }
-    
-    
+
+
 
     /**
      * Calculates and returns the length of the line.
-     * 
+     *
      * @return the length of the line
      */
     public double getLength() {
@@ -264,7 +167,7 @@ public class Line implements GraphicsObject {
 
     /**
      * Draws the line on the provided graphical window.
-     * 
+     *
      * @param canvas the {@code GraphWin} where the line will be drawn
      * @throws IllegalStateException if the object is already drawn
      */
@@ -286,20 +189,24 @@ public class Line implements GraphicsObject {
             canvas.deleteItem(this);
             this.canvas = null;
         }
+        Animator.cancel(this); // stop any in-flight animation now that this is off-canvas
     }
 
     /**
      * Draws the line on a {@code Graphics2D} panel.
-     * 
+     *
      * @param graphics the {@code Graphics2D} object used for rendering
      */
     @Override
     public void drawPanel(Graphics2D graphics) {
         BasicStroke stroke = null;
-        
+
         // Adjust the dash pattern based on lineType
         if (lineType.equals("solid")) {
-            stroke = new BasicStroke(width);
+            // JOIN_ROUND has no effect on a single 2-point segment (there's
+            // no corner to miter), but matches the stroke style used
+            // everywhere else for consistency.
+            stroke = new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
         } else if (lineType.equals("dotted")) {
             // Ensure the gap between dots is adjusted based on width
             float dashLength = 1f; // Length of dashes
@@ -314,10 +221,10 @@ public class Line implements GraphicsObject {
 
         graphics.setStroke(stroke);
         graphics.setColor(outlineColor);
-        graphics.drawLine((int) point1.getX(), (int) point1.getY(), 
+        graphics.drawLine((int) point1.getX(), (int) point1.getY(),
                           (int) point2.getX(), (int) point2.getY());
     }
-    
+
     @Override
     public String toString() {
         return String.format("Line(point1=%s, point2=%s, width=%d, outlineColor=%s, lineType=%s)",
