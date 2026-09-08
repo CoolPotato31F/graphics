@@ -26,6 +26,22 @@ public class Image implements GraphicsObject {
     private double rotation = 0;
     private BufferedImage original;
     private String filePath;
+
+    // Custom rotation pivot ("center"), as used by setCenter()/rotate().
+    // Stored as a fraction of the *source* (original) image's width/height
+    // rather than raw pixels, so the pivot stays correct even after
+    // setScale() changes the source image's dimensions.
+    private boolean hasCustomCenter = false;
+    private double pivotXFrac = 0.5;
+    private double pivotYFrac = 0.5;
+    // Where the pivot currently lands within the (possibly rotated) `image`
+    // bitmap's own top-left-origin coordinate space. Recomputed every time
+    // rotate() (or setCenter(), or setScale()) rebuilds `image`. When no
+    // custom center has been set this just tracks width/2, height/2, which
+    // reproduces the original center-of-bounding-box rotation behavior.
+    private double renderPivotX;
+    private double renderPivotY;
+
     /**
      * Constructs an Image object with a specified file path and position.
      * 
@@ -43,6 +59,8 @@ public class Image implements GraphicsObject {
             e.printStackTrace();
         }
         this.position = position;
+        this.renderPivotX = this.width / 2.0;
+        this.renderPivotY = this.height / 2.0;
     }
 
     public Image(Point position, URL filePath) {
@@ -56,6 +74,8 @@ public class Image implements GraphicsObject {
             e.printStackTrace();
         }
         this.position = position;
+        this.renderPivotX = this.width / 2.0;
+        this.renderPivotY = this.height / 2.0;
     }
 
     /**
@@ -128,12 +148,111 @@ public class Image implements GraphicsObject {
         BufferedImage resizedImage = new BufferedImage(this.width, this.height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = resizedImage.createGraphics();
 
-        // Use high-quality rendering settings
-        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        // Nearest-neighbor keeps pixel-art sprites crisp instead of
+        // smearing them (bilinear looks better for photos, worse for
+        // low-res game art like this).
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
         g2d.drawImage(original, 0, 0, this.width, this.height, null);
         g2d.dispose();
 
         original = resizedImage;
+
+        // Rebuild `image`/width/height/renderPivot at the (possibly
+        // nonzero) current rotation against the freshly-resized original,
+        // so scaling doesn't undo an existing rotation or desync the pivot.
+        applyRotation();
+    }
+
+    /**
+     * Stretches the SOURCE bitmap's width and height independently (unlike
+     * {@link #setScale}, which scales both by the same factor, and unlike
+     * {@link #setSize(int, int)}, which only stretches the already-rotated
+     * bitmap at draw time and would desync a custom {@link #setCenter}
+     * pivot) -- for sprites that need to span a variable distance in one
+     * direction without also changing thickness in the other, e.g. a door
+     * resized to fit a wider opening without becoming proportionally
+     * thicker. Recomputes the pivot correctly, same as {@link #setScale}.
+     */
+    public void stretchSource(int targetWidth, int targetHeight) {
+        targetWidth = Math.max(1, targetWidth);
+        targetHeight = Math.max(1, targetHeight);
+        BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = resizedImage.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        g2d.drawImage(original, 0, 0, targetWidth, targetHeight, null);
+        g2d.dispose();
+
+        original = resizedImage;
+        applyRotation();
+    }
+
+    /**
+     * Returns the width, in pixels, of the current <em>source</em> bitmap --
+     * i.e. the file as loaded, adjusted for any prior {@link #setScale}
+     * calls, but before rotation expands the on-screen bounding box. This
+     * is the number {@link #setCenter}'s pivot coordinates and
+     * {@link #setWidth}/{@link #setHeight}'s targets are measured against.
+     */
+    public int getSourceWidth() {
+        return original.getWidth();
+    }
+
+    /** @see #getSourceWidth() */
+    public int getSourceHeight() {
+        return original.getHeight();
+    }
+
+    /**
+     * Convenience for {@link #setScale}: resizes the image so its source
+     * width becomes exactly {@code targetWidth} pixels, preserving aspect
+     * ratio (i.e. scales height by the same factor).
+     *
+     * @param targetWidth the desired width, in pixels
+     */
+    public void setWidth(int targetWidth) {
+        setScale(targetWidth / (double) original.getWidth());
+    }
+
+    /**
+     * Convenience for {@link #setScale}: resizes the image so its source
+     * height becomes exactly {@code targetHeight} pixels, preserving aspect
+     * ratio (i.e. scales width by the same factor).
+     *
+     * @param targetHeight the desired height, in pixels
+     */
+    public void setHeight(int targetHeight) {
+        setScale(targetHeight / (double) original.getHeight());
+    }
+
+    /**
+     * Sets the point that {@link #rotate(double)} rotates the image around,
+     * and that this image's {@code position} refers to from then on --
+     * instead of the bounding-box corner/center the {@code alignment}
+     * setting would otherwise use. This is what makes a character sprite
+     * rotate about its head (or any other fixed point) rather than about
+     * the middle of its bounding box.
+     * <p>
+     * Coordinates are given in pixels of the image's current source
+     * bitmap (i.e. as if measured on the file straight out of
+     * {@code setScale()}/before any rotation), with (0, 0) at the top-left
+     * corner. For example, if a 24x30 sprite's head sits between pixel
+     * (12, 5) and (13, 6), call {@code setCenter(12.5, 5.5)}.
+     * <p>
+     * Internally this is stored as a fraction of the source image's
+     * width/height, so the pivot stays correct even if {@link #setScale}
+     * is called afterwards. Call this once, right after construction,
+     * before rotating.
+     *
+     * @param x the pivot's x-coordinate in the current source image's pixels
+     * @param y the pivot's y-coordinate in the current source image's pixels
+     */
+    public void setCenter(double x, double y) {
+        int srcWidth = original.getWidth();
+        int srcHeight = original.getHeight();
+        this.pivotXFrac = x / srcWidth;
+        this.pivotYFrac = y / srcHeight;
+        this.hasCustomCenter = true;
+        applyRotation(); // recompute image/width/height/renderPivot around the new pivot
     }
 
     /**
@@ -156,6 +275,13 @@ public class Image implements GraphicsObject {
      * Calculates the adjusted x-coordinate based on alignment.
      */
     private int getAlignedX() {
+        if (hasCustomCenter) {
+            // position refers to the pivot, wherever it currently lands
+            // within the (rotated) image bitmap -- alignment is ignored
+            // once a custom center is in play, since "top-left of the
+            // bounding box" isn't a meaningful anchor for a rotating sprite.
+            return (int) Math.round(position.getX() - renderPivotX);
+        }
         switch (alignment) {
             case "top-right":
             case "bottom-right":
@@ -171,6 +297,9 @@ public class Image implements GraphicsObject {
      * Calculates the adjusted y-coordinate based on alignment.
      */
     private int getAlignedY() {
+        if (hasCustomCenter) {
+            return (int) Math.round(position.getY() - renderPivotY);
+        }
         switch (alignment) {
             case "bottom-left":
             case "bottom-right":
@@ -209,39 +338,7 @@ public class Image implements GraphicsObject {
      * @param time The duration (in seconds) for the movement.
      */
     public void move(double dx, double dy, double time) {
-        new Thread(() -> {
-            long startTime = System.nanoTime();
-            long endTime = startTime + (long) (time * 1_000_000_000); // Convert seconds to nanoseconds
-            double startX = this.position.getX();
-            double startY = this.position.getY();
-
-            while (System.nanoTime() < endTime) {
-                double elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0; // Convert to seconds
-                double progress = elapsedTime / time;
-                if (progress > 1.0) progress = 1.0; // Clamp to ensure no overshooting
-
-                // Interpolate position
-                this.position.moveTo(startX + dx * progress, startY + dy * progress);
-
-                if (canvas != null) {
-                    canvas.update();
-                }
-
-                try {
-                    Thread.sleep(10); // Sleep briefly to allow smooth rendering
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-
-            // Ensure final position is set exactly
-            this.position.moveTo(startX + dx, startY + dy);
-
-            if (canvas != null) {
-                canvas.update();
-            }
-        }).start();
+        move(dx, dy, time, EasingStyle.LINEAR, EasingDirection.IN);
     }
 
     /**
@@ -255,133 +352,113 @@ public class Image implements GraphicsObject {
      * @param easingDirection The direction of the easing (In, Out, or InOut).
      */
     public void move(double dx, double dy, double time, EasingStyle easingStyle, EasingDirection easingDirection) {
-        new Thread(() -> {
-            long startTime = System.nanoTime();
-            long endTime = startTime + (long) (time * 1_000_000_000);
-            double startX = this.position.getX();
-            double startY = this.position.getY();
-
-            while (System.nanoTime() < endTime) {
-                double elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-                double progress = elapsedTime / time;
-                if (progress > 1.0) progress = 1.0;
-                double easedProgress = applyEasing(progress, easingStyle, easingDirection);
-
-                this.position.moveTo(startX + dx * easedProgress, startY + dy * easedProgress);
-
-                if (canvas != null) {
-                    canvas.update();
-                }
-
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-
-            this.position.moveTo(startX + dx, startY + dy);
-
-            if (canvas != null) {
-                canvas.update();
-            }
-        }).start();
-    }
-    private double applyEasing(double t, EasingStyle style, EasingDirection easingDirection) {
-        switch (easingDirection) {
-            case OUT:
-                // Reverse the easing by applying (1 - easing(1 - t))
-                return 1 - applyEasing(1 - t, style, EasingDirection.IN);
-            case INOUT:
-                // First half uses In, second half uses Out
-                return t < 0.5 
-                    ? applyEasing(t * 2, style, EasingDirection.IN) / 2 
-                    : 1 - applyEasing((1 - t) * 2, style, EasingDirection.IN) / 2;
-            case IN:
-            default:
-                // Normal easing behavior
-                switch (style) {
-                    case LINEAR:
-                        return t;
-                    case SINE:
-                        return 1 - Math.cos(t * Math.PI / 2);
-                    case QUAD:
-                        return t * t;
-                    case CUBIC:
-                        return t * t * t;
-                    case QUART:
-                        return t * t * t * t;
-                    case QUINT:
-                        return t * t * t * t * t;
-                    case EXPONENTIAL:
-                        return t == 0 ? 0 : Math.pow(2, 10 * (t - 1));
-                    case CIRCULAR:
-                        return 1 - Math.sqrt(1 - t * t);
-                    case BACK:
-                        double s = 1.70158;  // Default overshoot amount for "back" easing
-                        return t * t * ((s + 1) * t - s);
-                    case ELASTIC:
-                        if (t == 0 || t == 1) return t;
-                        double p = 0.3; // Period of oscillation
-                        return -Math.pow(2, 10 * (t - 1)) * Math.sin((t - 1.1) * (2 * Math.PI) / p);
-                    case BOUNCE:
-                        if (t > (1 - 1 / 2.75)) {
-                            t = 1 - t;
-                            return 1 - (7.5625 * t * t);
-                        } else if (t > (1 - 2 / 2.75)) {
-                            t = 1 - t - (1.5 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.75);
-                        } else if (t > (1 - 2.5 / 2.75)) {
-                            t = 1 - t - (2.25 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.9375);
-                        } else {
-                            t = 1 - t - (2.625 / 2.75);
-                            return 1 - (7.5625 * t * t + 0.984375);
-                        }
-                    default:
-                        return t; // Default to linear if the easing type is unknown
-                }
-        }
+        final double startX = this.position.getX();
+        final double startY = this.position.getY();
+        Animator.animate(this, time, easingStyle, easingDirection,
+            progress -> this.position.moveTo(startX + dx * progress, startY + dy * progress),
+            () -> this.position.moveTo(startX + dx, startY + dy),
+            () -> this.canvas);
     }
 
     /**
-     * Rotates the image by a specified angle in degrees.
+     * Rotates the image by a specified angle in degrees, relative to its
+     * current rotation. Rotates around the pivot set by {@link #setCenter}
+     * if one has been set, otherwise around the bounding-box center (the
+     * original behavior).
      * 
      * @param angle the angle in degrees to rotate the image
      */
     public void rotate(double angle) {
         rotation += angle;
+        applyRotation();
+    }
 
+    /**
+     * Sets the absolute rotation (in degrees), rather than rotating
+     * relative to the current angle. Handy for "face the mouse" style code
+     * where you compute a fresh target angle every frame instead of
+     * accumulating deltas.
+     *
+     * @param angle the absolute angle in degrees
+     */
+    public void setRotation(double angle) {
+        rotation = angle;
+        applyRotation();
+    }
+
+    /** Returns the image's current absolute rotation, in degrees. */
+    public double getRotation() {
+        return rotation;
+    }
+
+    /**
+     * Rebuilds {@code image}/{@code width}/{@code height} by rotating
+     * {@code original} by {@code rotation} degrees around the pivot
+     * ({@link #setCenter}'s point if set, otherwise the bounding-box
+     * center), and records where that pivot lands in the rebuilt bitmap
+     * ({@code renderPivotX}/{@code renderPivotY}) so {@link #getAlignedX}/
+     * {@link #getAlignedY} can place it back at {@code position} on screen.
+     * <p>
+     * Called by {@link #rotate}, {@link #setRotation}, {@link #setCenter},
+     * and {@link #setScale} -- anything that changes the angle or the
+     * source bitmap the angle is measured against.
+     */
+    private void applyRotation() {
         double radians = Math.toRadians(rotation);
         int origWidth = original.getWidth();
         int origHeight = original.getHeight();
 
-        // Calculate new dimensions after rotation
-        double sin = Math.abs(Math.sin(radians));
-        double cos = Math.abs(Math.cos(radians));
-        int newWidth = (int) Math.floor(origWidth * cos + origHeight * sin);
-        int newHeight = (int) Math.floor(origWidth * sin + origHeight * cos);
+        double pivotX = hasCustomCenter ? pivotXFrac * origWidth : origWidth / 2.0;
+        double pivotY = hasCustomCenter ? pivotYFrac * origHeight : origHeight / 2.0;
 
-        // Create a new rotated image with a transparent background
+        // Rotate the image's four corners around the pivot to find the
+        // exact bounding box of the rotated image, and where the
+        // (rotation-invariant) pivot lands within that box.
+        double cos = Math.cos(radians);
+        double sin = Math.sin(radians);
+        double minX = Double.POSITIVE_INFINITY, minY = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY;
+        double[][] corners = {
+            {0, 0}, {origWidth, 0}, {0, origHeight}, {origWidth, origHeight}
+        };
+        for (double[] corner : corners) {
+            double dx = corner[0] - pivotX;
+            double dy = corner[1] - pivotY;
+            double rx = dx * cos - dy * sin;
+            double ry = dx * sin + dy * cos;
+            minX = Math.min(minX, rx);
+            maxX = Math.max(maxX, rx);
+            minY = Math.min(minY, ry);
+            maxY = Math.max(maxY, ry);
+        }
+
+        int newWidth = Math.max(1, (int) Math.ceil(maxX - minX));
+        int newHeight = Math.max(1, (int) Math.ceil(maxY - minY));
+        // Since the pivot is rotation-invariant (it maps to itself), its
+        // location in the new bitmap is just how far the bounding box's
+        // min corner sits from it.
+        double newPivotX = -minX;
+        double newPivotY = -minY;
+
         BufferedImage rotatedImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = rotatedImage.createGraphics();
+        // Nearest-neighbor keeps rotated pixel-art sprites crisp instead
+        // of blurring their edges every frame the angle changes.
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
-        // Enable smooth rendering
-        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        
-        // Transform to rotate around center
         AffineTransform transform = new AffineTransform();
-        transform.translate((newWidth - origWidth) / 2.0, (newHeight - origHeight) / 2.0);
-        transform.rotate(radians, origWidth / 2.0, origHeight / 2.0);
-        
+        transform.translate(newPivotX, newPivotY); // pivot's target spot in the new bitmap
+        transform.rotate(radians);                 // rotate about that spot
+        transform.translate(-pivotX, -pivotY);      // ...having moved the pivot to the origin first
+
         g2d.drawImage(original, transform, null);
         g2d.dispose();
 
-        // Update image and dimensions
         image = rotatedImage;
         width = newWidth;
         height = newHeight;
+        renderPivotX = newPivotX;
+        renderPivotY = newPivotY;
     }
 
     /**
@@ -407,6 +484,7 @@ public class Image implements GraphicsObject {
             canvas.deleteItem(this);
             this.canvas = null;
         }
+        Animator.cancel(this); // stop any in-flight animation now that this is off-canvas
     }
 
     /**
@@ -425,7 +503,11 @@ public class Image implements GraphicsObject {
         // Draw an outline if it is set
         if (outlineColor != null) {
             graphics.setColor(outlineColor);
-            graphics.setStroke(new BasicStroke(outlineWidth));
+            // JOIN_ROUND avoids sharp miter spikes at tight corners; a
+            // plain axis-aligned rectangle's 90-degree corners are never
+            // sharp enough to trigger it, but this keeps every shape's
+            // stroke consistent.
+            graphics.setStroke(new BasicStroke(outlineWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             graphics.drawRect(x, y, width, height);
         }
     }
