@@ -265,7 +265,7 @@ actually happened will help get it resolved faster.
 ## Author
 **Kaiser Fechner**
 
-![image](https://github.com/user-attachments/assets/a3f3c404-8fee-4ea2-89d5-b352040b3f31)
+<img width="800" height="624" alt="Screen Recording 2026-09-09 at 2 55 19 PM" src="https://github.com/user-attachments/assets/9505665f-e2d1-41dc-a4da-28238cf9be5d" />
 
 ## COPYRIGHT AND PERMISSION NOTICE
 
