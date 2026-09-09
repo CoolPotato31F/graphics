@@ -29,6 +29,20 @@ public class Line implements GraphicsObject {
     }
 
     /**
+     * Copy constructor. Creates a new, undrawn Line with the same endpoints
+     * and styling as {@code other}.
+     *
+     * @param other The line to copy.
+     */
+    public Line(Line other) {
+        this.point1 = new Point(other.point1);
+        this.point2 = new Point(other.point2);
+        this.width = other.width;
+        this.outlineColor = other.outlineColor;
+        this.lineType = other.lineType;
+    }
+
+    /**
      * Sets the outline color of the line.
      *
      * @param color the new outline color
@@ -225,6 +239,9 @@ public class Line implements GraphicsObject {
                           (int) point2.getX(), (int) point2.getY());
     }
 
+    /**
+     * @return A human-readable summary of this line's endpoints and styling.
+     */
     @Override
     public String toString() {
         return String.format("Line(point1=%s, point2=%s, width=%d, outlineColor=%s, lineType=%s)",

@@ -25,6 +25,19 @@ public class Point implements GraphicsObject {
     }
 
     /**
+     * Copy constructor. Creates a new, undrawn Point with the same
+     * coordinates and styling as {@code other}.
+     *
+     * @param other The point to copy.
+     */
+    public Point(Point other) {
+        this.x = other.x;
+        this.y = other.y;
+        this.outlineColor = other.outlineColor;
+        this.width = other.width;
+    }
+
+    /**
      * @return String representation of the Point
      */
     @Override

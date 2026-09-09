@@ -157,6 +157,28 @@ public class SkewedImage implements GraphicsObject {
         this.bottomLeft = bottomLeft;
     }
 
+    /**
+     * Creates a new SkewedImage that is a copy of another. The new instance
+     * @param other the SkewedImage to copy
+     */
+    public SkewedImage(SkewedImage other) {
+        this.filePath = other.filePath;
+        applyShared(IMAGE_CACHE.computeIfAbsent("path:" + filePath, k -> {
+            try {
+                return toShared(loadImage(filePath));
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }));
+        this.topLeft = new Point(other.topLeft);
+        this.topRight = new Point(other.topRight);
+        this.bottomRight = new Point(other.bottomRight);
+        this.bottomLeft = new Point(other.bottomLeft);
+        this.outlineColor = other.outlineColor;
+        this.outlineWidth = other.outlineWidth;
+    }
+
     /** Same file-lookup behavior as {@link Image#loadImage}. */
     private BufferedImage loadImage(String filePath) throws IOException {
         File file = new File(filePath);
@@ -213,18 +235,22 @@ public class SkewedImage implements GraphicsObject {
     // Corner access
     // ---------------------------------------------------------------
 
+    /** @return the top-left corner point. */
     public Point getTopLeft() {
         return topLeft;
     }
 
+    /** @return the top-right corner point. */
     public Point getTopRight() {
         return topRight;
     }
 
+    /** @return the bottom-right corner point. */
     public Point getBottomRight() {
         return bottomRight;
     }
 
+    /** @return the bottom-left corner point. */
     public Point getBottomLeft() {
         return bottomLeft;
     }
@@ -276,10 +302,21 @@ public class SkewedImage implements GraphicsObject {
     // Outline (matches Image's outline support)
     // ---------------------------------------------------------------
 
+    /**
+     * Sets the outline color drawn around the quad's four corners. Pass
+     * {@code null} for no outline.
+     *
+     * @param color the new outline color, or {@code null} for none
+     */
     public void setOutline(Color color) {
         this.outlineColor = color;
     }
 
+    /**
+     * Sets the width of the outline drawn around the quad.
+     *
+     * @param width the new outline width
+     */
     public void setOutlineWidth(int width) {
         this.outlineWidth = width;
     }
@@ -337,6 +374,12 @@ public class SkewedImage implements GraphicsObject {
     // Moving individual corners
     // ---------------------------------------------------------------
 
+    /**
+     * Moves only the top-left corner by a given offset.
+     *
+     * @param dx the change in x position
+     * @param dy the change in y position
+     */
     public void moveTopLeft(double dx, double dy) {
         topLeft.move(dx, dy);
         if (canvas != null) {
@@ -344,6 +387,12 @@ public class SkewedImage implements GraphicsObject {
         }
     }
 
+    /**
+     * Moves only the top-right corner by a given offset.
+     *
+     * @param dx the change in x position
+     * @param dy the change in y position
+     */
     public void moveTopRight(double dx, double dy) {
         topRight.move(dx, dy);
         if (canvas != null) {
@@ -351,6 +400,12 @@ public class SkewedImage implements GraphicsObject {
         }
     }
 
+    /**
+     * Moves only the bottom-right corner by a given offset.
+     *
+     * @param dx the change in x position
+     * @param dy the change in y position
+     */
     public void moveBottomRight(double dx, double dy) {
         bottomRight.move(dx, dy);
         if (canvas != null) {
@@ -358,6 +413,12 @@ public class SkewedImage implements GraphicsObject {
         }
     }
 
+    /**
+     * Moves only the bottom-left corner by a given offset.
+     *
+     * @param dx the change in x position
+     * @param dy the change in y position
+     */
     public void moveBottomLeft(double dx, double dy) {
         bottomLeft.move(dx, dy);
         if (canvas != null) {
@@ -365,34 +426,102 @@ public class SkewedImage implements GraphicsObject {
         }
     }
 
+    /**
+     * Moves only the top-left corner smoothly over {@code time} seconds.
+     *
+     * @param dx   the total change in x position
+     * @param dy   the total change in y position
+     * @param time the duration in seconds
+     */
     public void moveTopLeft(double dx, double dy, double time) {
         moveTopLeft(dx, dy, time, EasingStyle.LINEAR, EasingDirection.IN);
     }
 
+    /**
+     * Moves only the top-right corner smoothly over {@code time} seconds.
+     *
+     * @param dx   the total change in x position
+     * @param dy   the total change in y position
+     * @param time the duration in seconds
+     */
     public void moveTopRight(double dx, double dy, double time) {
         moveTopRight(dx, dy, time, EasingStyle.LINEAR, EasingDirection.IN);
     }
 
+    /**
+     * Moves only the bottom-right corner smoothly over {@code time} seconds.
+     *
+     * @param dx   the total change in x position
+     * @param dy   the total change in y position
+     * @param time the duration in seconds
+     */
     public void moveBottomRight(double dx, double dy, double time) {
         moveBottomRight(dx, dy, time, EasingStyle.LINEAR, EasingDirection.IN);
     }
 
+    /**
+     * Moves only the bottom-left corner smoothly over {@code time} seconds.
+     *
+     * @param dx   the total change in x position
+     * @param dy   the total change in y position
+     * @param time the duration in seconds
+     */
     public void moveBottomLeft(double dx, double dy, double time) {
         moveBottomLeft(dx, dy, time, EasingStyle.LINEAR, EasingDirection.IN);
     }
 
+    /**
+     * Moves only the top-left corner smoothly using the given easing style
+     * and direction.
+     *
+     * @param dx        the total change in x position
+     * @param dy        the total change in y position
+     * @param time      the duration in seconds
+     * @param style     the easing curve to apply
+     * @param direction the easing direction (In, Out, or InOut)
+     */
     public void moveTopLeft(double dx, double dy, double time, EasingStyle style, EasingDirection direction) {
         animateCorner(topLeft, dx, dy, time, style, direction);
     }
 
+    /**
+     * Moves only the top-right corner smoothly using the given easing style
+     * and direction.
+     *
+     * @param dx        the total change in x position
+     * @param dy        the total change in y position
+     * @param time      the duration in seconds
+     * @param style     the easing curve to apply
+     * @param direction the easing direction (In, Out, or InOut)
+     */
     public void moveTopRight(double dx, double dy, double time, EasingStyle style, EasingDirection direction) {
         animateCorner(topRight, dx, dy, time, style, direction);
     }
 
+    /**
+     * Moves only the bottom-right corner smoothly using the given easing
+     * style and direction.
+     *
+     * @param dx        the total change in x position
+     * @param dy        the total change in y position
+     * @param time      the duration in seconds
+     * @param style     the easing curve to apply
+     * @param direction the easing direction (In, Out, or InOut)
+     */
     public void moveBottomRight(double dx, double dy, double time, EasingStyle style, EasingDirection direction) {
         animateCorner(bottomRight, dx, dy, time, style, direction);
     }
 
+    /**
+     * Moves only the bottom-left corner smoothly using the given easing
+     * style and direction.
+     *
+     * @param dx        the total change in x position
+     * @param dy        the total change in y position
+     * @param time      the duration in seconds
+     * @param style     the easing curve to apply
+     * @param direction the easing direction (In, Out, or InOut)
+     */
     public void moveBottomLeft(double dx, double dy, double time, EasingStyle style, EasingDirection direction) {
         animateCorner(bottomLeft, dx, dy, time, style, direction);
     }
@@ -419,6 +548,12 @@ public class SkewedImage implements GraphicsObject {
     // draw / undraw
     // ---------------------------------------------------------------
 
+    /**
+     * Draws the skewed image on the given canvas.
+     *
+     * @param canvas The canvas on which the image will be drawn.
+     * @throws IllegalStateException if the image is already drawn.
+     */
     @Override
     public void draw(GraphWin canvas) {
         if (this.canvas != null) {
@@ -428,6 +563,10 @@ public class SkewedImage implements GraphicsObject {
         canvas.addItem(this);
     }
 
+    /**
+     * Removes the skewed image from the canvas and cancels any in-flight
+     * animations on it or its individual corners.
+     */
     @Override
     public void undraw() {
         if (canvas != null) {
@@ -445,6 +584,13 @@ public class SkewedImage implements GraphicsObject {
     // Rendering
     // ---------------------------------------------------------------
 
+    /**
+     * Renders the image warped onto its current four corners, choosing the
+     * fast affine path or the slow perspective-warp path as appropriate,
+     * plus an outline if one is set.
+     *
+     * @param graphics The {@code Graphics2D} object used for rendering.
+     */
     @Override
     public void drawPanel(Graphics2D graphics) {
         double x0 = topLeft.getX(), y0 = topLeft.getY();
@@ -621,15 +767,21 @@ public class SkewedImage implements GraphicsObject {
         return (a << 24) | (r << 16) | (gr << 8) | b;
     }
 
+    /** Extracts one 8-bit color channel from a packed ARGB int at the given bit shift. */
     private static int channel(int argb, int shift) {
         return (argb >> shift) & 0xFF;
     }
 
+    /** Rounds and clamps a channel value to the valid [0, 255] range. */
     private static int clamp(double v) {
         int i = (int) Math.round(v);
         return Math.max(0, Math.min(255, i));
     }
 
+    /**
+     * @return A human-readable summary of this image's file and current
+     *         four corners.
+     */
     @Override
     public String toString() {
         return String.format("SkewedImage(filePath=%s, topLeft=%s, topRight=%s, bottomRight=%s, bottomLeft=%s)",

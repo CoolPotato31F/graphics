@@ -4,6 +4,11 @@ import java.awt.*;
 import java.awt.font.GlyphVector;
 
 
+/**
+ * Represents drawable, possibly multi-line text with configurable font,
+ * fill color, outline, alignment, and an optional background rectangle
+ * with its own border.
+ */
 public class Text implements GraphicsObject {
     private String content;
     private Point position;
@@ -26,6 +31,23 @@ public class Text implements GraphicsObject {
     public Text(String content, Point position) {
         this.content = content;
         this.position = position;
+    }
+
+    /**
+     * Copy constructor for creating a new Text object based on another Text object.
+     * @param other The Text object to copy from.
+     */
+    public Text(Text other) {
+        this.content = other.content;
+        this.position = new Point(other.position);
+        this.font = other.font;
+        this.textFillColor = other.textFillColor;
+        this.rectangleFillColor = other.rectangleFillColor;
+        this.borderColor = other.borderColor;
+        this.textOutlineColor = other.textOutlineColor;
+        this.borderWidth = other.borderWidth;
+        this.textOutlineWidth = other.textOutlineWidth;
+        this.alignment = other.alignment;
     }
 
     /**
@@ -95,37 +117,93 @@ public class Text implements GraphicsObject {
     }
 
     // Setters to change text, rectangle, and outline properties
+
+    /**
+     * Sets the font used to render the text.
+     *
+     * @param font The new font.
+     */
     public void setFont(Font font) {
         this.font = font;
     }
+
+    /**
+     * Sets the font used to render the text by name, style, and size.
+     *
+     * @param fontName The font family name (e.g. "Arial").
+     * @param style    The font style, one of the {@link Font} style constants
+     *                 (e.g. {@code Font.PLAIN}, {@code Font.BOLD}).
+     * @param size     The point size of the font.
+     */
     public void setFont(String fontName, int style, int size) {
         this.font = new Font(fontName, style, size);
     }
 
+    /**
+     * Sets the fill color of the text itself.
+     *
+     * @param color The new text fill color.
+     */
     public void setFill(Color color) {
         this.textFillColor = color; // Changes the color of the text
     }
 
+    /**
+     * Sets the fill color of the background rectangle drawn behind the
+     * text. Pass {@code null} to draw no background rectangle.
+     *
+     * @param color The new background fill color, or {@code null} for none.
+     */
     public void setBackground(Color color) {
         this.rectangleFillColor = color; // Changes the background color of the rectangle
     }
 
+    /**
+     * Sets the color of the background rectangle's border. Only visible if
+     * {@link #setBorderWidth(int)} is greater than zero.
+     *
+     * @param color The new border color.
+     */
     public void setBorder(Color color) {
         this.borderColor = color; // Changes the border color of the rectangle
     }
 
+    /**
+     * Sets the width of the background rectangle's border. A width of zero
+     * (the default) draws no border.
+     *
+     * @param width The new border width.
+     */
     public void setBorderWidth(int width) {
         this.borderWidth = width; // Changes the rectangle's border width
     }
 
+    /**
+     * Sets the color of the text's outline. Only visible if
+     * {@link #setOutlineWidth(int)} is greater than zero.
+     *
+     * @param color The new text outline color.
+     */
     public void setOutline(Color color) {
         this.textOutlineColor = color; // Changes the text's outline color
     }
 
+    /**
+     * Sets the width of the text's outline. A width of zero (the default)
+     * draws no outline.
+     *
+     * @param width The new text outline width.
+     */
     public void setOutlineWidth(int width) {
         this.textOutlineWidth = width; // Changes the text's outline width
     }
 
+    /**
+     * Sets the horizontal alignment of the text relative to its position.
+     *
+     * @param alignment One of {@code "left"}, {@code "center"}, or {@code "right"}.
+     * @throws IllegalArgumentException if {@code alignment} is not one of the valid values.
+     */
     public void setAlignment(String alignment) {
         // Set alignment to one of "left", "center", or "right"
         if (alignment.equals("left") || alignment.equals("center") || alignment.equals("right")) {
@@ -135,6 +213,12 @@ public class Text implements GraphicsObject {
         }
     }
 
+    /**
+     * Draws the text on the given canvas.
+     *
+     * @param canvas The canvas on which the text will be drawn.
+     * @throws IllegalStateException if the text is already drawn.
+     */
     @Override
     public void draw(GraphWin canvas) {
         if (this.canvas != null) {
@@ -144,6 +228,9 @@ public class Text implements GraphicsObject {
         canvas.addItem(this);
     }
 
+    /**
+     * Removes the text from the canvas.
+     */
     @Override
     public void undraw() {
         if (canvas != null) {
@@ -153,6 +240,12 @@ public class Text implements GraphicsObject {
         Animator.cancel(this); // stop any in-flight animation now that this is off-canvas
     }
 
+    /**
+     * Renders the text (and its optional background/border/outline) onto a
+     * {@code Graphics2D} panel, handling multi-line content and alignment.
+     *
+     * @param graphics The {@code Graphics2D} object used for rendering.
+     */
     @Override
     public void drawPanel(Graphics2D graphics) {
         // Remember the original settings to restore later
@@ -254,6 +347,10 @@ public class Text implements GraphicsObject {
         graphics.setRenderingHints(originalHints);
     }
     
+    /**
+     * @return A human-readable summary of this text's content, position,
+     *         font, colors, and alignment.
+     */
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder("Text(");

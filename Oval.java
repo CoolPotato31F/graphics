@@ -4,6 +4,10 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
 
+/**
+ * Represents an oval (ellipse) defined by a bounding box between two
+ * corner points, with customizable fill, outline color, and outline width.
+ */
 public class Oval implements GraphicsObject {
     private Point point1;
     private Point point2;
@@ -13,7 +17,17 @@ public class Oval implements GraphicsObject {
     private GraphWin canvas;
     private Color fillColor;
     private Color outlineColor = Color.BLACK;
+    private boolean smooth = true; // true = rounded cap/join (default), false = sharp/square
 
+    /**
+     * Constructs an Oval inscribed in the bounding box defined by two corner
+     * points. The points may be given in any order (top-left/bottom-right or
+     * vice versa); they are normalized internally so {@code point1} is
+     * always the top-left corner and {@code point2} the bottom-right.
+     *
+     * @param p1 One corner of the bounding box.
+     * @param p2 The opposite corner of the bounding box.
+     */
     public Oval(Point p1, Point p2) {
         Point np1 = new Point(0, 0);
         Point np2 = new Point(0, 0);
@@ -40,6 +54,29 @@ public class Oval implements GraphicsObject {
         h = (int) (np2.getY() - np1.getY());
     }
 
+    /**
+     * Copy constructor. Creates a new, undrawn Oval with the same bounding
+     * box and styling as {@code other}.
+     *
+     * @param other The oval to copy.
+     */
+    public Oval(Oval other) {
+        this.point1 = new Point(other.point1);
+        this.point2 = new Point(other.point2);
+        this.width = other.width;
+        this.w = other.w;
+        this.h = other.h;
+        this.fillColor = other.fillColor;
+        this.outlineColor = other.outlineColor;
+        this.smooth = other.smooth;
+    }
+
+    /**
+     * Draws the oval on the given canvas.
+     *
+     * @param canvas The canvas on which the oval will be drawn.
+     * @throws Error if the oval is already drawn on a canvas.
+     */
     @Override
     public void draw(GraphWin canvas) {
         if (this.canvas != null) {
@@ -49,6 +86,9 @@ public class Oval implements GraphicsObject {
         canvas.addItem(this);
     }
 
+    /**
+     * Removes the oval from the canvas.
+     */
     @Override
     public void undraw() {
         if (canvas != null) {
@@ -58,23 +98,42 @@ public class Oval implements GraphicsObject {
         Animator.cancel(this);
     }
 
+    /**
+     * Sets the fill color of the oval.
+     *
+     * @param color The color to fill the oval with.
+     */
     public void setFill(Color color) {
         this.fillColor = color;
     }
 
+    /**
+     * Sets the outline color of the oval.
+     *
+     * @param color The new outline color.
+     */
     public void setOutline(Color color) {
         this.outlineColor = color;
     }
 
+    /**
+     * @return A human-readable summary of this oval's bounding box and styling.
+     */
     @Override
     public String toString() {
-        return "Oval(Point(" + point1.getX() + ", " + point1.getY() + "), Point(" + point2.getX() + ", " + point2.getY() + "))";
+        return "Oval(Point(" + point1.getX() + ", " + point1.getY() + "), Point(" + point2.getX() + ", " + point2.getY() + "), smooth=" + smooth + ")";
     }
 
+    /**
+     * @return The top-left corner of the oval's bounding box.
+     */
     public Point getP1() {
         return point1;
     }
 
+    /**
+     * @return The bottom-right corner of the oval's bounding box.
+     */
     public Point getP2() {
         return point2;
     }
@@ -93,18 +152,55 @@ public class Oval implements GraphicsObject {
         return new Point((point1.getX() + point2.getX()) / 2.0, (point1.getY() + point2.getY()) / 2.0);
     }
 
+    /**
+     * @return The width and height of the oval's bounding box, packed into
+     *         a {@code Point} whose x is the width and y is the height.
+     */
     public Point getSize() {
         return new Point(w, h);
     }
 
+    /**
+     * Sets the outline width of the oval.
+     *
+     * @param width The new outline width.
+     */
     public void setWidth(int width) {
         this.width = width;
     }
 
+    /**
+     * @return The current outline width of the oval.
+     */
     public int getWidth() {
         return this.width;
     }
 
+    /**
+     * Controls the outline's stroke cap/join style. Ovals have no corners,
+     * so this mainly matters if the outline gets thick, but it's kept
+     * consistent with the other shapes so the same call works everywhere.
+     *
+     * @param smooth true for a rounded cap/join (the default), false for a
+     *               sharp/square one.
+     */
+    public void setSmooth(boolean smooth) {
+        this.smooth = smooth;
+    }
+
+    /**
+     * @return whether the outline is currently drawn with rounded caps/joins.
+     */
+    public boolean isSmooth() {
+        return smooth;
+    }
+
+    /**
+     * Moves the oval by a specified amount in the x and y directions.
+     *
+     * @param dx The amount to move the oval along the x-axis.
+     * @param dy The amount to move the oval along the y-axis.
+     */
     public void move(double dx, double dy) {
         point1.move(dx, dy);
         point2.move(dx, dy);
@@ -113,10 +209,27 @@ public class Oval implements GraphicsObject {
         }
     }
 
+    /**
+     * Moves the oval smoothly over a given duration.
+     *
+     * @param dx   The total change in x-coordinate.
+     * @param dy   The total change in y-coordinate.
+     * @param time The duration (in seconds) for the movement.
+     */
     public void move(double dx, double dy, double time) {
         move(dx, dy, time, EasingStyle.LINEAR, EasingDirection.IN);
     }
 
+    /**
+     * Smoothly moves the oval from its current position by (dx, dy) over a
+     * specified time using the given easing style and direction.
+     *
+     * @param dx              The total change in x-coordinate.
+     * @param dy              The total change in y-coordinate.
+     * @param time            The duration (in seconds) over which the movement should complete.
+     * @param easingStyle     The easing function that dictates the acceleration curve.
+     * @param easingDirection The direction of the easing (In, Out, or InOut).
+     */
     public void move(double dx, double dy, double time, EasingStyle easingStyle, EasingDirection easingDirection) {
         final double startX = this.point1.getX();
         final double startY = this.point1.getY();
@@ -134,13 +247,20 @@ public class Oval implements GraphicsObject {
             () -> this.canvas);
     }
 
+    /**
+     * Renders the oval onto a {@code Graphics2D} panel.
+     *
+     * @param graphics The {@code Graphics2D} object used for rendering.
+     */
     @Override
     public void drawPanel(Graphics2D graphics) {
         if (fillColor != null) {
             graphics.setColor(fillColor);
             graphics.fillOval((int) point1.getX(), (int) point1.getY(), w, h);
         }
-        graphics.setStroke(new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        graphics.setStroke(smooth
+                ? new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+                : new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         graphics.setColor(outlineColor);
         graphics.drawOval((int) point1.getX(), (int) point1.getY(), w, h);
     }

@@ -176,107 +176,244 @@ public class GraphWin extends JFrame {
      * @param args command-line arguments
      * @throws InterruptedException if interrupted during the program execution
      */
-    public static void main(String[] args) throws InterruptedException {
-        GraphWin window = new GraphWin("Testing", 500, 500, false);
-        // Set the background color to cyan.
+    public static void main(String[] args) {
+        
+        GraphWin window = new GraphWin("Java Graphics Library - Full Feature Tester", 900, 650, false);
         window.setBackground(Color.CYAN);
-        // Update the window to display the background.
 
-
-        // Draw a point.
-        Point point = new Point(100, 100);
+        // --- Basic primitives -------------------------------------------------
+        Point point = new Point(40, 40);
+        point.setWidth(6);
         point.draw(window);
 
-        // Draw various lines with different styles and widths.
-        Line line = new Line(new Point(450, 123), new Point(350, 150));
-        line.setWidth(4);
-        line.setType("dashed");
-        line.draw(window);
+        Line solid = new Line(new Point(650, 60), new Point(780, 100));
+        solid.setType("solid");
+        solid.setWidth(3);
+        solid.draw(window);
 
-        line = new Line(new Point(450, 133), new Point(350, 160));
-        line.setWidth(3);
-        line.setType("dotted");
-        line.draw(window);
+        Line dashed = new Line(new Point(650, 80), new Point(780, 120));
+        dashed.setType("dashed");
+        dashed.setWidth(3);
+        dashed.draw(window);
 
-        line = new Line(new Point(450, 113), new Point(350, 140));
-        line.setWidth(3);
-        line.setType("solid");
-        line.draw(window);
-        // Load and draw an image.
-        Image image = new Image(new Point(450, 420), GraphWin.class.getResource("TestImage.jpg")); // Image initialization can take time.
-        image.setScale(0.15);
-        image.draw(window);
+        Line dotted = new Line(new Point(650, 100), new Point(780, 140));
+        dotted.setType("dotted");
+        dotted.setWidth(3);
+        dotted.draw(window);
 
-        // Draw a rectangle.
-        Rectangle rect = new Rectangle(new Point(46, 200), new Point(146, 300));
-        rect.setFill(Color.BLUE);
-        rect.setWidth(3);
-        rect.draw(window);
+        Rectangle staticRect = new Rectangle(new Point(40, 100), new Point(150, 200));
+        staticRect.setFill(Color.BLUE);
+        staticRect.setWidth(10);
+        staticRect.setSmooth(false); // sharp/mitered corners
+        staticRect.draw(window);
 
-        // Draw a rotatable polygon.
-        Point[] points = {new Point(350, 230), new Point(375, 300), new Point(245, 385)};
-        RotatablePolygon poly = new RotatablePolygon(points);
-        poly.rotate(40);
-        poly.setWidth(15);
+        Rectangle smoothRect = new Rectangle(new Point(170, 100), new Point(280, 200));
+        smoothRect.setFill(Color.BLUE);
+        smoothRect.setWidth(10); // setSmooth(true) is the default -- rounded corners
+        smoothRect.draw(window);
+
+        Text cornerLabel = new Text("setSmooth(false)  vs.  setSmooth(true) [default]", new Point(40, 220));
+        cornerLabel.setFont("Arial", Font.PLAIN, 12);
+        cornerLabel.draw(window);
+
+        Oval oval = new Oval(new Point(40, 480), new Point(220, 600));
+        oval.setFill(Color.YELLOW);
+        oval.setOutline(Color.BLUE);
+        oval.setWidth(6);
+        oval.draw(window);
+
+        // --- Rotating polygon with centroid marker -----------------------------
+        Point[] triPts = {new Point(400, 220), new Point(430, 300), new Point(300, 380)};
+        RotatablePolygon poly = new RotatablePolygon(triPts);
         poly.setFill(Color.MAGENTA);
+        poly.setWidth(8);
         poly.draw(window);
-        poly.getCenter().draw(window); //draw the center of the polygon.
+        Point centroidMarker = poly.getCenter();
+        centroidMarker.setWidth(4);
+        centroidMarker.setOutline(Color.BLACK);
+        centroidMarker.draw(window);
 
-        // Draw a circle.
-        Circle circ = new Circle(new Point(245, 180), 55);
+        // --- Circle used later for the click-to-move animation ------------------
+        Circle circ = new Circle(new Point(220, 300), 45);
         circ.setFill(Color.RED);
         circ.setWidth(3);
         circ.draw(window);
 
-        // Draw an oval.
-        Oval oval = new Oval(new Point(30, 350), new Point(180, 450));
-        oval.setFill(Color.YELLOW);
-        oval.setWidth(10);
-        oval.setOutline(Color.BLUE);
-        oval.draw(window);
+        // --- Styled text ---------------------------------------------------------
+        Text title = new Text("Java Graphics Tester", new Point(450, 30));
+        title.setFill(Color.BLUE);
+        title.setOutline(Color.BLACK);
+        title.setOutlineWidth(3);
+        title.setBackground(Color.WHITE);
+        title.setBorder(Color.ORANGE);
+        title.setBorderWidth(2);
+        title.setAlignment("center");
+        title.setFont("Arial", Font.BOLD, 24);
+        title.draw(window);
 
-        // Draw text with various formatting.
-        Text text = new Text("abcdefghijklmnopqrstuvwxyz\nABCDEFGHIJKLMNOPQRSTUFWXYZ\n1234567890!@#$%^&*()", new Point(250, 100));
-        text.setFill(Color.BLUE);
-        text.setOutlineWidth(4);
-        text.setOutline(Color.BLACK);
-        text.setBackground(Color.GREEN);
-        text.setBorderWidth(2);
-        text.setBorder(Color.ORANGE);
-        text.setAlignment("center");
-        text.setFont("Arial", Font.BOLD, 25);
-        text.draw(window);
+        Text instructions = new Text(
+                "Arrows: move square | Click: move circle | S: shader | C: toggle triangle corners | Esc: quit",
+                new Point(200, 630));
+        instructions.setFill(Color.BLACK);
+        instructions.setFont("Arial", Font.PLAIN, 14);
+        instructions.draw(window);
 
-        // Text that shows whichever keys are currently held down, live.
-        Text keysText = new Text("Keys: (none)", new Point(10, 30));
+        Text keysText = new Text("Keys: (none)", new Point(120, 30));
         keysText.setFill(Color.BLACK);
         keysText.setBackground(Color.WHITE);
         keysText.setBorder(Color.BLACK);
         keysText.setBorderWidth(1);
-        keysText.setFont("Arial", Font.PLAIN, 16);
+        keysText.setFont("Arial", Font.PLAIN, 14);
         keysText.draw(window);
 
-        // Update the window to display all drawn objects.
+        // --- Image: scaled + continuously rotated --------------------------------
+        Image image = new Image(new Point(780, 300), GraphWin.class.getResource("TestImage.jpg"));
+        image.setScale(0.18);
+        image.draw(window);
+
+        // --- SkewedImage: four independently movable corners ("flag wave") ------
+        SkewedImage flag = new SkewedImage(
+                GraphWin.class.getResource("TestImage.jpg"),
+                new Point(520, 420), new Point(680, 420),
+                new Point(680, 520), new Point(520, 520));
+        flag.draw(window);
+
+        // --- PixelCanvas: animated per-pixel plasma effect, redrawn every frame -
+        PixelCanvas canvas = new PixelCanvas(new Point(260, 480), 32, 32, 120, 120);
+        canvas.setOutline(Color.BLACK);
+        canvas.setOutlineWidth(2);
+        canvas.draw(window);
+
+        // --- Layering demo: pin the point above everything else -----------------
+        window.setLayer(point, 10);
+
+        // --- The keyboard-controlled "player" rectangle --------------------------
+        Rectangle player = new Rectangle(new Point(400, 100), new Point(440, 140));
+        player.setFill(Color.GREEN);
+        player.setWidth(2);
+        player.draw(window);
+
+        // --- Optional whole-frame shader (invert colors), toggled with 'S' ------
+        Shader invert = (frame, time) -> {
+            int w = frame.getWidth(), h = frame.getHeight();
+            int[] px = frame.getRGB(0, 0, w, h, null, 0, w);
+            for (int i = 0; i < px.length; i++) {
+                int a = px[i] & 0xFF000000;
+                int r = 255 - ((px[i] >> 16) & 0xFF);
+                int g = 255 - ((px[i] >> 8) & 0xFF);
+                int b = 255 - (px[i] & 0xFF);
+                px[i] = a | (r << 16) | (g << 8) | b;
+            }
+            frame.setRGB(0, 0, w, h, px, 0, w);
+            return frame;
+        };
+        boolean[] shaderOn = {false};
+        boolean[] sKeyLatch = {false};
+        boolean[] cKeyLatch = {false};
+
         window.update();
 
-        // Animation loop: rotate the polygon.
+        // --- Main loop -------------------------------------------------------
+        double moveSpeed = 220; // pixels/second
         while (window.isVisible()) {
-            poly.rotate(100 * window.getDeltaTime());
-            image.rotate(100 * window.getDeltaTime());
-            window.setTitle("FPS: "+Math.round(1/window.getDeltaTime()));
+            double dt = window.getDeltaTime();
 
-            // Show whichever keys are currently pressed (e.g. Key.ESCAPE,
-            // Key.SPACE, etc. can be compared against these same names).
+            // Continuous rotation
+            poly.rotate(60 * dt);
+            centroidMarker.moveTo(poly.getCenter());
+            image.rotate(45 * dt);
+
+            // "Flag wave" via SkewedImage corner animation
+            double t = window.getElapsedTime();
+
+            // Animate the PixelCanvas: every pixel is recomputed every frame
+            // (a classic "plasma" effect) via repeated setPixel() calls, plus
+            // a marker that's cleared and redrawn each frame with drawCircle()
+            // so it visibly orbits the canvas.
+            int w = canvas.getResolutionWidth();
+            int h = canvas.getResolutionHeight();
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    double v = Math.sin(x * 0.35 + t * 1.5)
+                            + Math.sin(y * 0.35 + t * 1.1)
+                            + Math.sin((x + y) * 0.2 + t * 0.8)
+                            + Math.sin(Math.sqrt((x - w / 2.0) * (x - w / 2.0)
+                                                + (y - h / 2.0) * (y - h / 2.0)) * 0.5 - t * 2);
+                    float hue = (float) ((v + 4) / 8.0); // normalize roughly into [0,1]
+                    canvas.setPixel(x, y, Color.getHSBColor(hue, 1f, 1f));
+                }
+            }
+            // An orbiting marker drawn with the canvas's own shape-drawing helper.
+            int mx = (int) (w / 2.0 + (w / 2.5) * Math.cos(t * 2));
+            int my = (int) (h / 2.0 + (h / 2.5) * Math.sin(t * 2));
+            canvas.drawCircle(mx, my, 3, Color.WHITE, true);
+            flag.setTopLeft(new Point(520, 420 + 10 * Math.sin(t * 2)));
+            flag.setTopRight(new Point(680, 420 + 10 * Math.sin(t * 2 + 1)));
+            flag.setBottomLeft(new Point(520, 520 + 10 * Math.sin(t * 2 + 2)));
+            flag.setBottomRight(new Point(680, 520 + 10 * Math.sin(t * 2 + 3)));
+
+            // Arrow-key polling movement for the player rectangle
+            double dx = 0, dy = 0;
+            if (window.isKeyPressed(Key.LEFT)) dx -= moveSpeed * dt;
+            if (window.isKeyPressed(Key.RIGHT)) dx += moveSpeed * dt;
+            if (window.isKeyPressed(Key.UP)) dy -= moveSpeed * dt;
+            if (window.isKeyPressed(Key.DOWN)) dy += moveSpeed * dt;
+            if (dx != 0 || dy != 0) player.move(dx, dy);
+
+            // Click-to-move the circle with an eased animation
+            if (window.checkMouse()) {
+                Point m = window.getCurrentMousePosition();
+                Point center = circ.getCenter();
+                double mdx = m.getX() - center.getX();
+                double mdy = m.getY() - center.getY();
+                circ.move(mdx, mdy, 0.6, EasingStyle.ELASTIC, EasingDirection.OUT);
+            }
+
+            // Toggle the invert shader on 'S' (edge-triggered so it doesn't
+            // flicker every frame the key is held)
+            if (window.isKeyPressed(Key.S)) {
+                if (!sKeyLatch[0]) {
+                    shaderOn[0] = !shaderOn[0];
+                    if (shaderOn[0]) {
+                        window.addShader(invert);
+                    } else {
+                        window.removeShader(invert);
+                    }
+                    sKeyLatch[0] = true;
+                }
+            } else {
+                sKeyLatch[0] = false;
+            }
+
+            // Toggle the rotating triangle's outline between rounded and
+            // sharp corners on 'C', via the new setSmooth()/isSmooth() pair.
+            if (window.isKeyPressed(Key.C)) {
+                if (!cKeyLatch[0]) {
+                    poly.setSmooth(!poly.isSmooth());
+                    cKeyLatch[0] = true;
+                }
+            } else {
+                cKeyLatch[0] = false;
+            }
+
+            // Live "which keys are held" readout
             String[] pressed = window.checkKeys();
             keysText.setText(pressed.length == 0 ? "Keys: (none)" : "Keys: " + String.join(", ", pressed));
 
+            window.setTitle("Java Graphics Tester - FPS: " + Math.round(1 / Math.max(dt, 1e-6)));
+
             window.update();
+
+            // Escape quits (checked last so the final frame above still draws)
+            String[] held = window.checkKeys();
+            for (String k : held) {
+                if (k.equals(Key.ESCAPE)) {
+                    window.dispose();
+                    return;
+                }
+            }
         }
-
-        // Dispose of the window resources.
-        window.dispose();
     }
-
     /**
      * Constructs a GraphWin window with a specified width, height, title, and autoflush setting.
      *
@@ -424,6 +561,13 @@ public class GraphWin extends JFrame {
             setLayout(null);
         }
 
+        /**
+         * Renders every drawn {@link GraphicsObject} for the current frame,
+         * either straight to the panel (fast path, no shaders registered)
+         * or through an offscreen buffer and the registered shader chain.
+         *
+         * @param g The AWT graphics context supplied by Swing.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
@@ -623,6 +767,14 @@ public class GraphWin extends JFrame {
      * by whatever's using this window; a no-op if already in the
      * requested state.
      * <p>
+     * Note this is <em>not</em> the same thing as clicking a macOS window's
+     * green "full screen" button -- that puts the window into its own
+     * Mission Control Space with an OS-drawn swipe animation, which is a
+     * macOS-only feature with no cross-platform AWT equivalent (it would
+     * require macOS-specific, Mac-only APIs). This method instead just
+     * removes the window's border/titlebar and resizes it to cover the
+     * screen, which behaves identically on every platform.
+     * <p>
      * Toggling back off restores the exact windowed position/size the
      * window had right before going fullscreen.
      */
@@ -653,7 +805,25 @@ public class GraphWin extends JFrame {
             }
         }
         setVisible(true);
-        panel.requestFocusInWindow();
+
+        // BUG FIX: this used to call panel.requestFocusInWindow(). Java
+        // Components default to focusable=true, so that call actually
+        // succeeded -- but it shifted keyboard focus onto `panel`
+        // specifically, a *different* component from `this` (the JFrame),
+        // which is where the KeyListener/MouseListener set up in the
+        // constructor are actually registered. AWT delivers a KeyEvent only
+        // to listeners on the current focus owner, not to listeners on its
+        // ancestors, so once focus moved to `panel` every key press was
+        // silently swallowed -- explaining exactly the "keys stop working
+        // after toggling fullscreen" symptom, since before the very first
+        // toggle nothing had ever called requestFocus at all and the frame
+        // (holding the listeners) kept the natural default focus.
+        // toFront() additionally guards against the platform/window-manager
+        // quirk where a freshly re-shown *undecorated* window doesn't
+        // automatically receive OS-level focus the way a normal decorated
+        // one would.
+        toFront();
+        requestFocusInWindow();
 
         // The panel's actual pixel size just changed -- keep width/height
         // (and the repaint region/shader buffer that depend on them) in
@@ -1036,6 +1206,12 @@ public class GraphWin extends JFrame {
         return keysPressed.contains(keyCode);
     }
 
+    /**
+     * Opens the Java Graphics library's wiki documentation in the user's
+     * default web browser, if the platform supports it. Silently does
+     * nothing (aside from logging) if browsing isn't supported or the
+     * browse call fails.
+     */
     public void help() {
         try {
             Desktop desktop = Desktop.getDesktop();

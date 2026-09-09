@@ -101,6 +101,28 @@ public class PixelCanvas implements GraphicsObject {
         this.pixels = new int[resolutionWidth * resolutionHeight]; // all 0 == fully transparent black
         this.renderImage = new BufferedImage(resolutionWidth, resolutionHeight, BufferedImage.TYPE_INT_ARGB);
     }
+
+    /**
+     * Copy constructor. Creates a new, undrawn PixelCanvas with the same
+     * resolution, display size, pixel data, and styling as {@code other}.
+     *
+     * @param other The PixelCanvas to copy.
+     */
+    public PixelCanvas(PixelCanvas other) {
+        this.position = new Point(other.position);
+        this.resolutionWidth = other.resolutionWidth;
+        this.resolutionHeight = other.resolutionHeight;
+        this.displayWidth = other.displayWidth;
+        this.displayHeight = other.displayHeight;
+        this.pixelated = other.pixelated;
+        this.outlineColor = other.outlineColor;
+        this.outlineWidth = other.outlineWidth;
+        this.canvas = null; // not drawn yet
+        this.pixels = new int[resolutionWidth * resolutionHeight];
+        System.arraycopy(other.pixels, 0, this.pixels, 0, pixels.length);
+        this.renderImage = new BufferedImage(resolutionWidth, resolutionHeight, BufferedImage.TYPE_INT_ARGB);
+        this.dirty = true; // force renderImage to be updated on first draw
+    }
  
     // ---------------------------------------------------------------
     // Pixel data
@@ -534,10 +556,12 @@ public class PixelCanvas implements GraphicsObject {
         }
     }
  
+    /** @return the pixel grid's fixed width (number of columns). */
     public int getResolutionWidth() {
         return resolutionWidth;
     }
  
+    /** @return the pixel grid's fixed height (number of rows). */
     public int getResolutionHeight() {
         return resolutionHeight;
     }
@@ -546,10 +570,12 @@ public class PixelCanvas implements GraphicsObject {
     // Display size / position (independent of resolution/pixel data)
     // ---------------------------------------------------------------
  
+    /** @return the canvas's current on-screen width in pixels. */
     public int getDisplayWidth() {
         return displayWidth;
     }
  
+    /** @return the canvas's current on-screen height in pixels. */
     public int getDisplayHeight() {
         return displayHeight;
     }
@@ -585,6 +611,7 @@ public class PixelCanvas implements GraphicsObject {
         this.alignment = alignment;
     }
  
+    /** Computes the on-screen x-coordinate of the canvas's left edge, based on {@code position} and alignment. */
     private int getAlignedX() {
         switch (alignment) {
             case "top-right":
@@ -597,6 +624,7 @@ public class PixelCanvas implements GraphicsObject {
         }
     }
  
+    /** Computes the on-screen y-coordinate of the canvas's top edge, based on {@code position} and alignment. */
     private int getAlignedY() {
         switch (alignment) {
             case "bottom-left":
@@ -642,7 +670,13 @@ public class PixelCanvas implements GraphicsObject {
         }
     }
  
-    /** Moves the canvas smoothly over a given duration. */
+    /**
+     * Moves the canvas smoothly over a given duration.
+     *
+     * @param dx   the total change in x position
+     * @param dy   the total change in y position
+     * @param time the duration in seconds
+     */
     public void move(double dx, double dy, double time) {
         move(dx, dy, time, EasingStyle.LINEAR, EasingDirection.IN);
     }
@@ -650,6 +684,12 @@ public class PixelCanvas implements GraphicsObject {
     /**
      * Smoothly moves the canvas from its current position by (dx, dy) over a
      * specified time using the given easing style and direction.
+     *
+     * @param dx              the total change in x position
+     * @param dy              the total change in y position
+     * @param time            the duration in seconds
+     * @param easingStyle     the easing curve to apply
+     * @param easingDirection the easing direction (In, Out, or InOut)
      */
     public void move(double dx, double dy, double time, EasingStyle easingStyle, EasingDirection easingDirection) {
         final double startX = this.position.getX();
@@ -669,6 +709,7 @@ public class PixelCanvas implements GraphicsObject {
         this.outlineColor = color;
     }
  
+    /** Sets the width of the outline drawn around the canvas's display rectangle. */
     public void setOutlineWidth(int width) {
         this.outlineWidth = width;
     }
@@ -683,6 +724,7 @@ public class PixelCanvas implements GraphicsObject {
         this.pixelated = pixelated;
     }
  
+    /** @return whether the canvas is currently scaled with nearest-neighbor (true) or bilinear (false) sampling. */
     public boolean isPixelated() {
         return pixelated;
     }
@@ -691,6 +733,12 @@ public class PixelCanvas implements GraphicsObject {
     // draw / undraw
     // ---------------------------------------------------------------
  
+    /**
+     * Draws the pixel canvas on the given window.
+     *
+     * @param canvas The canvas on which this PixelCanvas will be drawn.
+     * @throws IllegalStateException if it is already drawn.
+     */
     @Override
     public void draw(GraphWin canvas) {
         if (this.canvas != null) {
@@ -700,6 +748,9 @@ public class PixelCanvas implements GraphicsObject {
         canvas.addItem(this);
     }
  
+    /**
+     * Removes the pixel canvas from the window.
+     */
     @Override
     public void undraw() {
         if (canvas != null) {
@@ -713,6 +764,14 @@ public class PixelCanvas implements GraphicsObject {
     // Rendering
     // ---------------------------------------------------------------
  
+    /**
+     * Renders the pixel grid onto a {@code Graphics2D} panel, rebuilding
+     * the backing image first only if pixels have changed since the last
+     * frame, then scaling it to the display size with the chosen
+     * interpolation mode and drawing the outline, if any.
+     *
+     * @param graphics The {@code Graphics2D} object used for rendering.
+     */
     @Override
     public void drawPanel(Graphics2D graphics) {
         if (dirty) {
@@ -745,6 +804,10 @@ public class PixelCanvas implements GraphicsObject {
         }
     }
  
+    /**
+     * @return A human-readable summary of this canvas's position,
+     *         resolution, display size, and styling.
+     */
     @Override
     public String toString() {
         return String.format(

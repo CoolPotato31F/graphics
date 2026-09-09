@@ -63,6 +63,12 @@ public class Image implements GraphicsObject {
         this.renderPivotY = this.height / 2.0;
     }
 
+    /**
+     * Constructs an Image object with a specified resource URL and position.
+     *
+     * @param position the position of the image (Point object)
+     * @param filePath the URL of the image resource
+     */
     public Image(Point position, URL filePath) {
         try {
             this.image = ImageIO.read(filePath);
@@ -76,6 +82,32 @@ public class Image implements GraphicsObject {
         this.position = position;
         this.renderPivotX = this.width / 2.0;
         this.renderPivotY = this.height / 2.0;
+    }
+
+    /**
+     * Copy constructor. Creates a new, undrawn Image with the same bitmap,
+     * position, and styling (including rotation and any custom pivot) as
+     * {@code other}.
+     *
+     * @param other The image to copy.
+     */
+    public Image(Image other) {
+        this.position = new Point(other.position);
+        this.width = other.width;
+        this.height = other.height;
+        this.image = deepCopy(other.image);
+        this.original = deepCopy(other.original);
+        this.canvas = other.canvas;
+        this.outlineColor = other.outlineColor;
+        this.outlineWidth = other.outlineWidth;
+        this.alignment = other.alignment;
+        this.rotation = other.rotation;
+        this.filePath = other.filePath;
+        this.hasCustomCenter = other.hasCustomCenter;
+        this.pivotXFrac = other.pivotXFrac;
+        this.pivotYFrac = other.pivotYFrac;
+        this.renderPivotX = other.renderPivotX;
+        this.renderPivotY = other.renderPivotY;
     }
 
     /**
@@ -172,6 +204,9 @@ public class Image implements GraphicsObject {
      * direction without also changing thickness in the other, e.g. a door
      * resized to fit a wider opening without becoming proportionally
      * thicker. Recomputes the pivot correctly, same as {@link #setScale}.
+     *
+     * @param targetWidth  the new source width, in pixels
+     * @param targetHeight the new source height, in pixels
      */
     public void stretchSource(int targetWidth, int targetHeight) {
         targetWidth = Math.max(1, targetWidth);
@@ -310,6 +345,13 @@ public class Image implements GraphicsObject {
                 return (int) position.getY();
         }
     }
+    /**
+     * Creates an independent pixel-level copy of a {@code BufferedImage},
+     * so mutating the copy (or the original) never affects the other.
+     *
+     * @param img The image to copy.
+     * @return A new {@code BufferedImage} with the same pixel data.
+     */
     public BufferedImage deepCopy(BufferedImage img) {
         ColorModel cm = img.getColorModel();
         boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
@@ -512,6 +554,10 @@ public class Image implements GraphicsObject {
         }
     }
     
+    /**
+     * @return A human-readable summary of this image's file, position,
+     *         size, and styling.
+     */
     @Override
     public String toString() {
         return String.format("Image(filePath=%s, position=%s, width=%d, height=%d, outlineColor=%s, " + 

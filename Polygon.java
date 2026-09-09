@@ -15,6 +15,7 @@ public class Polygon implements GraphicsObject {
     protected Color outlineColor = Color.BLACK; // Outline color
     protected int width = 1;          // Outline width
     protected GraphWin canvas;        // Reference to the canvas this is drawn on
+    protected boolean smooth = true;  // true = rounded corners on the stroke (default), false = sharp/mitered
 
     /**
      * Constructs a Polygon from an array of points.
@@ -23,6 +24,23 @@ public class Polygon implements GraphicsObject {
      */
     public Polygon(Point[] p) {
         this.points = p;
+    }
+
+    /**
+     * Copy constructor. Creates a new, undrawn Polygon with the same
+     * vertices and styling as {@code other}.
+     *
+     * @param other The polygon to copy.
+     */
+    public Polygon(Polygon other) {
+        this.points = new Point[other.points.length];
+        for (int i = 0; i < other.points.length; i++) {
+            this.points[i] = new Point(other.points[i]);
+        }
+        this.fillColor = other.fillColor;
+        this.outlineColor = other.outlineColor;
+        this.width = other.width;
+        this.smooth = other.smooth;
     }
 
     /**
@@ -86,6 +104,27 @@ public class Polygon implements GraphicsObject {
      */
     public int getWidth() {
         return this.width;
+    }
+
+    /**
+     * Controls whether the outline's corners are drawn rounded or sharp.
+     * With an arbitrary polygon, corner angles can get tight enough that a
+     * sharp (mitered) join spikes outward past the vertex; rounded corners
+     * avoid that but soften every angle. Purely cosmetic -- inherited as-is
+     * by {@link RotatablePolygon}.
+     *
+     * @param smooth true for rounded corners (the default), false for
+     *               sharp/mitered corners.
+     */
+    public void setSmooth(boolean smooth) {
+        this.smooth = smooth;
+    }
+
+    /**
+     * @return whether the outline is currently drawn with rounded corners.
+     */
+    public boolean isSmooth() {
+        return smooth;
     }
 
     /**
@@ -197,15 +236,21 @@ public class Polygon implements GraphicsObject {
             graphics.fillPolygon(xCoords, yCoords, points.length);
         }
 
-        // JOIN_ROUND (rather than the default JOIN_MITER) rounds sharp
-        // corners instead of letting the outline spike outward past the
-        // vertex -- with an arbitrary polygon, corner angles can get tight
-        // enough that a miter join would extend well beyond the shape.
-        graphics.setStroke(new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        // JOIN_ROUND/CAP_ROUND (rather than JOIN_MITER/CAP_BUTT) rounds
+        // sharp corners instead of letting the outline spike outward past
+        // the vertex -- with an arbitrary polygon, corner angles can get
+        // tight enough that a miter join would extend well beyond the
+        // shape. Call setSmooth(false) for sharp/mitered corners instead.
+        graphics.setStroke(smooth
+                ? new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+                : new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         graphics.setColor(outlineColor);
         graphics.drawPolygon(xCoords, yCoords, points.length);
     }
 
+    /**
+     * @return A human-readable summary listing this polygon's vertices.
+     */
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder("Polygon(Points=[");

@@ -16,6 +16,7 @@ public class Circle implements GraphicsObject {
     private int width = 1; // Default outline width
     private GraphWin canvas; // Reference to the canvas where the circle is drawn
     private Color fillColor; // Color used to fill the circle
+    private boolean smooth = true; // true = rounded cap/join (default), false = sharp/square
 
     /**
      * Constructs a Circle object with a given center point and radius.
@@ -26,6 +27,21 @@ public class Circle implements GraphicsObject {
     public Circle(Point p1, int r) {
         point1 = p1;
         radius = r;
+    }
+
+    /**
+     * Copy constructor. Creates a new, undrawn Circle with the same center,
+     * radius, and styling as {@code other}.
+     *
+     * @param other The circle to copy.
+     */
+    public Circle(Circle other) {
+        this.point1 = new Point(other.point1);
+        this.radius = other.radius;
+        this.outlineColor = other.outlineColor;
+        this.width = other.width;
+        this.fillColor = other.fillColor;
+        this.smooth = other.smooth;
     }
 
     /**
@@ -83,6 +99,26 @@ public class Circle implements GraphicsObject {
     }
 
     /**
+     * Controls the outline's stroke cap/join style. Circles have no
+     * corners, so this mainly matters if the outline gets thick (a wide
+     * stroke's cap becomes visible), but it's kept consistent with the
+     * other shapes so the same call works everywhere.
+     *
+     * @param smooth true for a rounded cap/join (the default), false for a
+     *               sharp/square one.
+     */
+    public void setSmooth(boolean smooth) {
+        this.smooth = smooth;
+    }
+
+    /**
+     * @return whether the outline is currently drawn with rounded caps/joins.
+     */
+    public boolean isSmooth() {
+        return smooth;
+    }
+
+    /**
      * Draws the circle on a graphics panel.
      * 
      * @param graphics The Graphics2D object used for rendering.
@@ -98,10 +134,13 @@ public class Circle implements GraphicsObject {
         }
 
         // Draws the outline of the circle
-        // JOIN_ROUND (rather than the default JOIN_MITER) avoids sharp
-        // miter spikes at tight corners; harmless here since an oval outline
-        // has no corners at all, but keeps every shape's stroke consistent.
-        graphics.setStroke(new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        // JOIN_ROUND/CAP_ROUND (rather than JOIN_MITER/CAP_BUTT) gives a
+        // rounded stroke; harmless here since an oval outline has no
+        // corners, but kept consistent with every other shape's stroke.
+        // Toggle with setSmooth(false) for a sharp/square stroke instead.
+        graphics.setStroke(smooth
+                ? new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+                : new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         graphics.setColor(outlineColor);
         graphics.drawOval((int) point1.getX() - radius, (int) point1.getY() - radius, radius * 2, radius * 2);
     }
@@ -165,6 +204,9 @@ public class Circle implements GraphicsObject {
         return radius;
     }
     
+    /**
+     * @return A human-readable summary of this circle's center, radius, and styling.
+     */
     @Override
     public String toString() {
         return "Circle{" +
@@ -173,6 +215,7 @@ public class Circle implements GraphicsObject {
                ", outlineColor=" + outlineColor +
                ", outlineWidth=" + width +
                ", fillColor=" + (fillColor != null ? fillColor : "None") +
+               ", smooth=" + smooth +
                '}';
     }
 }
