@@ -3,6 +3,20 @@
 ## Overview
 The **Graphics** package provides a simple yet powerful framework for creating graphical windows and rendering objects in Java. It supports various graphical elements such as shapes, text, images, and interactive input via mouse and keyboard.
 
+## Documentation
+Full documentation for every class — constructors, methods, and usage examples — lives on
+the **[GitHub Wiki](https://github.com/CoolPotato31F/Java-Graphics/wiki)**. If something
+isn't working, isn't behaving how you expect, or you're not sure how to use a class or
+method, check there first:
+
+* **[Home](https://github.com/CoolPotato31F/Java-Graphics/wiki)** / **[Table of Contents](https://github.com/CoolPotato31F/Java-Graphics/wiki/Table-of-Contents)** — full list of documented classes
+* **[Installing](https://github.com/CoolPotato31F/Java-Graphics/wiki/Tutorial#java-graphics-package-installation-guide)** / **[Updating](https://github.com/CoolPotato31F/Java-Graphics/wiki/Tutorial#java-graphics-package-update-guide)** — setup and upgrade instructions
+* Individual class pages (e.g. [GraphWin](https://github.com/CoolPotato31F/Java-Graphics/wiki/GraphWin), [Collision](https://github.com/CoolPotato31F/Java-Graphics/wiki/Collision)) — detailed method references and examples
+
+If the wiki doesn't answer your question, or you think you've found a bug, please
+[open an issue](https://github.com/CoolPotato31F/Java-Graphics/issues) — see
+[Reporting an Issue](#reporting-an-issue) below for what to include.
+
 ## Features
 - Basic graphical window (`GraphWin`) for rendering shapes and images
 - `GraphicsObject` interface for managing graphical elements
@@ -235,12 +249,34 @@ now reflected in `GraphWin.java`'s own `@version`/history comment as well
 ### Version 0.0.1
 - Basic graphical objects and rendering functionality.
 
-## License
-This package is licensed under the MIT License.
+## Reporting an Issue
+Before opening an issue, please check the **[wiki](https://github.com/CoolPotato31F/Java-Graphics/wiki)** —
+most "how do I..." and "why doesn't this work..." questions are already answered on a
+class's own wiki page (e.g. [GraphWin](https://github.com/CoolPotato31F/Java-Graphics/wiki/GraphWin)
+for window/input questions, [Collision](https://github.com/CoolPotato31F/Java-Graphics/wiki/Collision)
+for collision detection, [Animations](https://github.com/CoolPotato31F/Java-Graphics/wiki/Animations)
+for `move()`/easing questions).
+
+If you've checked the wiki and still have a bug report or feature request, please
+[open an issue on GitHub](https://github.com/CoolPotato31F/Java-Graphics/issues). Including
+a short code snippet that reproduces the problem, what you expected to happen, and what
+actually happened will help get it resolved faster.
 
 ## Author
 **Kaiser Fechner**
 
-For any issues or feature requests, please open an issue on GitHub.
-
 ![image](https://github.com/user-attachments/assets/a3f3c404-8fee-4ea2-89d5-b352040b3f31)
+
+## License
+This package is licensed under the MIT License.
+
+```
+Copyright 2026 Kaiser Fechner
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
