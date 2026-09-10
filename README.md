@@ -148,11 +148,6 @@ System.out.println("Mouse Position: " + mousePos);
 | `README.md` | This file. |
 
 ## Changelog
-This tracks differences between this local copy of the package and the version
-currently published on GitHub (still at Version 0.0.2). Everything below,
-across every version number, is new relative to that published copy, and is
-now reflected in `GraphWin.java`'s own `@version`/history comment as well
-(currently at 0.0.11).
 
 ### Version 0.0.11 — 09/07/2026
 - `getKey()` / `checkKeys()` now return key names, not raw codes/chars —
