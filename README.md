@@ -134,17 +134,17 @@ System.out.println("Mouse Position: " + mousePos);
 | `RotatablePolygon.java` | A `Polygon` that can be rotated in place. |
 | `Text.java` | Styled, aligned text with optional background/border/outline. |
 | `Image.java` | A bitmap image supporting move/scale/rotate. |
-| `SkewedImage.java` *(v0.0.5)* | An image warped onto four independent corner points. |
-| `PixelCanvas.java` *(v0.0.5)* | A per-pixel-addressable canvas for procedural/pixel-art rendering. |
-| `Animator.java` *(v0.0.6)* | Shared background driver for every object's timed, eased animations. |
-| `Easing.java` *(v0.0.6)* | Shared easing-curve math used by `Animator`. |
+| `SkewedImage.java` | An image warped onto four independent corner points. |
+| `PixelCanvas.java` | A per-pixel-addressable canvas for procedural/pixel-art rendering. |
+| `Animator.java` | Shared background driver for every object's timed, eased animations. |
+| `Easing.java` | Shared easing-curve math used by `Animator`. |
 | `EasingStyle.java` | Enum of easing curves (linear, sine, bounce, elastic, etc). |
 | `EasingDirection.java` | Enum of easing directions (`IN`, `OUT`, `INOUT`). |
-| `Shader.java` *(v0.0.9)* | Functional interface for whole-frame post-processing effects. |
-| `Collision.java` *(v0.0.10)* | Centralized shape-vs-shape collision detection and simple resolution. |
+| `Shader.java` | Functional interface for whole-frame post-processing effects. |
+| `Collision.java` | Centralized shape-vs-shape collision detection and simple resolution. |
 | `Key.java` | Named constants for the key strings `GraphWin` reports. |
 | `TestImage.jpg` | Sample image used by the `GraphWin` demo in `main()`. |
-| `Dirt.jpg` *(v0.0.11)* | Additional sample texture/image asset. |
+| `Dirt.jpg` | Additional sample texture/image asset. |
 | `README.md` | This file. |
 
 ## Changelog
